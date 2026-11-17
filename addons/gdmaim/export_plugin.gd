@@ -73,6 +73,7 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	settings.initialize_settings(true)
 	# Turning off obfuscation only keeps names as they are, everything else still takes place
 	_enabled = !features.has("no_gdmaim")
+	_addon_path = _get_addon_path()
 	
 	_initialize_third_party()
 	
@@ -370,13 +371,14 @@ func _clean_libs(target_path : String) -> void:
 
 
 func _export_file(path : String, type : String, features : PackedStringArray) -> void:
-	if !_enabled:
-		return
-		
+	# The addon is never part of the game, also if the preset does not exclude it
 	if path.begins_with(_addon_path):
 		skip()
 		return
-	
+
+	if !_enabled:
+		return
+
 	var ext : String = path.get_extension()
 	if ext == "ico":
 		skip() #HACK
