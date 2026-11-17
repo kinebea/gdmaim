@@ -547,19 +547,12 @@ func _read_multi_string() -> void:
 		_stream.get_next()
 		_add_line_break()
 	
-	# Capture the indentation of the line where the multistring started
-	var base_indent := ""
-	if _output.back().tokens and _output.back().tokens[0].type == Token.Type.INDENTATION:
-		base_indent = _output.back().tokens[0].get_value()
-		
-	# Append padding lines to maintain 1:1 line counting & indentation depth so the AST doesn't drop scope.
+	# Append empty padding lines to maintain 1:1 line counting. They hold nothing, as
+	# indentation in them would end up in front of whatever follows the string.
 	for i in str.count("\n"):
 		line_count += 1
-		var new_line := Line.new()
-		if base_indent:
-			new_line.add_token(Token.new(Token.Type.INDENTATION, base_indent, _tokens.size(), _output.size(), ""))
-		_output.append(new_line)
-	
+		_output.append(Line.new())
+
 	# Ensure we force a newline after a bare multiline string
 	if has_newline:
 		line_count += 1
