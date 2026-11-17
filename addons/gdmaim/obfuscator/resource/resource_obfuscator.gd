@@ -5,6 +5,7 @@ const _Logger := preload("../../logger.gd")
 const _Settings := preload("../../settings.gd")
 const SymbolTable := preload("../symbol_table.gd")
 const Resources : PackedStringArray = ["tres", "res", "gdshader"]
+const PATH_RESOURCES : PackedStringArray = ["Animation", "SceneReplicationConfig", "AnimationNodeStateMachineTransition"]
 
 static var c_strip : RegEx = null:
 	get:
@@ -33,6 +34,7 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 	var lines : PackedStringArray = source_data.split("\n")
 	var in_string : PackedByteArray = _find_string_lines(lines)
 	var out : PackedStringArray
+	var resource_type : String # Of the [resource] section, as given by the header of a .tres
 	var i : int = 0
 	while i < lines.size():
 		var line : String = lines[i]
@@ -63,6 +65,7 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 		
 	
 		if line.begins_with("[gd_resource"):
+			resource_type = _read_string(line.get_slice(' type=', 1))
 			var script_class : String = 'script_class="'
 			var finder : int = line.find(script_class)
 			if finder > -1:
@@ -80,7 +83,11 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 		if line.begins_with("[node") or line.begins_with("[sub_resource") or line.begins_with("[resource"):
 			# A node with neither type nor instance is one of an instanced scene's, set from
 			# outside: its script is in that scene.
-			var has_script : bool = line.contains("instance=") or line.contains('type="Animation"') or (line.begins_with("[node") and !line.contains("type="))
+			var has_script : bool = line.contains("instance=") or (line.begins_with("[node") and !line.contains("type="))
+			# These hold paths to the properties and methods of scripts, without having a script
+			for type : String in PATH_RESOURCES:
+				if line.contains('type="' + type + '"') or (resource_type == type and line.begins_with("[resource")):
+					has_script = true
 			var j : int = i
 			while j < lines.size():
 				if in_string[j]:
