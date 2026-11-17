@@ -19,6 +19,7 @@ var _current_indentation : int
 var _bracket_lock : int = 0
 var _statement_break : bool = false
 var _dictionary_keys : Dictionary
+var _pattern_bindings : Dictionary
 
 # CUSTOM INTERNALS
 var _blocked : bool = false
@@ -81,6 +82,11 @@ func _find_dictionary_keys() -> void:
 # Whether a declaration with this parent is a member of a class, and not local to a function
 func _is_class_level(parent : AST.ASTNode) -> bool:
 	return parent is AST.Sequence and parent.get_parent() is AST.Class
+
+
+# Whether the token is the name of a binding in a match pattern, like the x in "var x:"
+func is_pattern_binding(token : Token) -> bool:
+	return token != null and _pattern_bindings.has(token.idx)
 
 
 func _is_dictionary_key(token : Token) -> bool:
@@ -673,14 +679,25 @@ func _parse_var(parent : AST.ASTNode) -> AST.Var:
 		return null
 	
 	var is_static : bool = _tokenizer.peek(-2).is_keyword("static") if _tokenizer.peek(-2) else false
-	
+
 	var ast := AST.Var.new(parent)
+
+	# A binding in a match pattern, like "var x:", has neither type, value nor accessors.
+	# The colon after it begins the body of the branch.
+	if parent.get_parent() is AST.Match:
+		_pattern_bindings[token.idx] = true
+		ast.symbol = _symbol_table.create_local_symbol(token.get_value())
+		token.link_symbol(ast.symbol)
+		if _blocked or _line_has_hint(PreprocessorHints.LOCK_SYMBOLS):
+			_symbol_table.lock_symbol(ast.symbol)
+		return ast
+
 	ast.symbol = _symbol_table.create_symbol(ast, token.get_value(), _parse_var_type(ast))
-	
+
 	token.link_symbol(ast.symbol)
 	if _blocked or _line_has_hint(PreprocessorHints.LOCK_SYMBOLS):
 		_symbol_table.lock_symbol(ast.symbol)
-	
+
 	ast.default = _parse_var_default(ast)
 	ast.getset = _parse_var_getset(ast)
 	
