@@ -874,7 +874,13 @@ func _parse_var_type(ast : AST.ASTNode) -> String:
 		_tokenizer.get_next()
 		var path : SymbolTable.SymbolPath = _parse_symbol_path(ast)
 		return str(path)
-	
+
+	# A variable set to a dictionary is one, so its keys are not mistaken for members
+	var assign : int = 2 if _tokenizer.peek(1).is_punctuator(":") else 1
+	var value : Token = _tokenizer.peek(assign + 1)
+	if value and value.is_punctuator("{") and _tokenizer.peek(assign).is_operator("="):
+		return "Dictionary"
+
 	return ""
 
 
