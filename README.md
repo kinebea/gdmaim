@@ -83,8 +83,6 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 `Shuffle Top-Level Declarations`: Shuffles the line positions of top-level declarations, such as variables, functions and classes.
 
-`Inline Statements`: If enabled, aggressively compresses multiple lines of code into as little lines as possible.
-
 `Inline Constants`: If enabled, accesses to constants will be replaced with hardcoded values. Declarations of constants get removed.
 
 `Inline enums`: If enabled, accesses to enum keys will be replaced with hardcoded values. Declarations of enums get removed.
@@ -102,6 +100,8 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 `Strip Editor Annotations`: If enabled, annotations used exclusively by the editor will be removed, like `@export_group`, `@icon` and `@warning_ignore`. `@export` on a variable is kept, because it also decides what `duplicate()`, local-to-scene resources and `ResourceSaver` copy.
 
 `Strip Static Typing`: Removes the types of variables, parameters and return values. Exported variables keep their type, which `@export` relies on.
+
+`Strip Sequential New Lines`: If enabled, arrays, dictionaries and argument lists that are spread over several lines are put on one line.
 
 `Initialize Stripped Typed Variables`: Complement of `Strip Static Typing`. A variable of a built-in type that has no value is given the one its type starts out with, like `var count=0` for `var count : int`. A variable without a value whose type might be an enum keeps its type instead, as it would start out as `null` and not as `0` otherwise.
 
@@ -141,6 +141,12 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 `Path` : Files/Folders to prevent their obfuscation, the paths must be separated by ";". Paths start at `res://`, which gets added if left out. A file can be given with or without its extension.
 > Example: `res://path/to/my_file_1.gd;res://path/to/my_file_2;res://path/to/my_exclude_folder`
+
+`Exclude Resources`: If enabled, scenes and resources are exported as they are, without renaming anything in them.
+
+`Custom Tokens File`: If enabled, the names listed in `res://addons/gdmaim/user/ignore_tokens.txt`, one per line, are never renamed.
+
+`Custom Tokens as regex`: If enabled, each line of that file is a regular expression instead. A name is kept if the expression matches any part of it, so use `^` and `$` to match whole names.
 
 ## Usage [↑](#table-of-contents)
 
