@@ -210,6 +210,7 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 		_symbols.obfuscate_symbols()
 	
 	# Initialize gdbc if necessary
+	_compiler = null
 	if settings.export_mode != settings.ExportMode.TEXT and ClassDB.class_exists("BytecodeCompiler"):
 		_compiler = ClassDB.instantiate("BytecodeCompiler")
 		if settings.export_mode == settings.ExportMode.BINARY:
