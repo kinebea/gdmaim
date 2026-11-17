@@ -651,11 +651,24 @@ func _strip_code() -> void:
 						elif token.get_value() in Builtins.ANNOTATIONS and !line.has_hint(PreprocessorHints.PRESERVE_ANNOTATION):
 							line.remove_token(i)
 							if line.tokens.size() > i and line.tokens[i].is_punctuator("("):
-								var last_token: Token
-								while line.tokens.size() > i:
-									last_token = line.tokens[i]
-									line.remove_token(i)
-									if last_token.is_punctuator(")"): break
+								# The arguments, which may hold brackets of their own and go on in the lines after
+								var depth : int = 0
+								var arg_line : int = l
+								while arg_line < lines.size():
+									var arg_tokens : Array[Token] = lines[arg_line].tokens
+									var at : int = i if arg_line == l else 0
+									while arg_tokens.size() > at:
+										var last_token : Token = arg_tokens[at]
+										arg_tokens.remove_at(at)
+										if last_token.is_punctuator("("):
+											depth += 1
+										elif last_token.is_punctuator(")"):
+											depth -= 1
+											if depth == 0:
+												break
+									if depth == 0:
+										break
+									arg_line += 1
 							while line.tokens.size() > i and line.tokens[i].is_whitespace(): line.remove_token(i)
 							continue
 		
