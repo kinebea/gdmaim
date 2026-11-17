@@ -24,6 +24,8 @@ func _init(path : String) -> void:
 	self.path = path
 
 func parse(source_code : String, symbol_table : SymbolTable, autoload_symbol : SymbolTable.Symbol = null) -> void:
+	# Carriage returns would otherwise end up in comments and their preprocessor hints
+	source_code = source_code.replace("\r\n", "\n")
 	self.source_code = source_code
 	_symbol_table = symbol_table
 	tokenizer = Tokenizer.new()
