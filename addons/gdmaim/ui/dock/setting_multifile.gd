@@ -32,20 +32,14 @@ func set_files(value : String) -> void:
 	if !line_edit:
 		return
 		
-	var current : String = line_edit.text
-	
-	if current.length() == 0:
-		current = value.strip_edges()
-	else:
-		value = value.strip_edges()
-		
-		var rgx : RegEx = RegEx.create_from_string("\\b{0}\\b".format([value]))
-		if rgx and rgx.search(current):
-			return
-			
-		current = str(current, ";", value.strip_edges())
-		
-	_set_files(current)
+	# Each path once, compared as it is written
+	var entries : PackedStringArray = line_edit.text.split(";", false)
+	for entry : String in value.split(";", false):
+		entry = entry.strip_edges()
+		if !entry.is_empty() and !entries.has(entry):
+			entries.append(entry)
+
+	_set_files(";".join(entries))
 
 func _on_selection(value : Variant) -> void:
 	var size : int = line_edit.text.length()
