@@ -163,7 +163,7 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	
 	# Parse scripts and gather their symbols, skipping those the preset never exports
 	var excluded : PackedStringArray = get_export_preset().get_exclude_filter().split(",", false)
-	for paths in [scripts, _get_files("res://", ".tscn"), _get_files("res://", ".scn")]:
+	for paths in [scripts, _get_files("res://", ".tscn"), _get_files("res://", ".scn"), _get_files("res://", ".tres")]:
 		for script_path in paths:
 			if !_is_excluded(script_path, excluded):
 				_parse_script(script_path)
@@ -483,7 +483,7 @@ func _parse_script(path : String) -> void:
 	if path.ends_with(".gd"):
 		source_code = str(FileAccess.get_file_as_string(path).strip_edges(), "\n")
 		
-	elif path.ends_with(".tscn") or path.ends_with(".scn"):		
+	elif path.ends_with(".tscn") or path.ends_with(".scn") or path.ends_with(".tres"):
 		#SOURCE
 		var source_codes : Array[String] = []
 		var data : String = ""
