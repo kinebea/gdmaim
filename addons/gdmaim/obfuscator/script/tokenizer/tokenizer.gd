@@ -46,6 +46,8 @@ func read(source_code : String) -> void:
 	_stream = Stream.new(source_code)
 	while _read_next_token(): pass
 
+	line_count = _stream.get_line_pos()
+
 
 func _read_preprocessor(src : String) -> void:
 	if null == _pregex:

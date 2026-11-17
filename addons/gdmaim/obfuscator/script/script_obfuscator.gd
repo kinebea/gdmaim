@@ -88,52 +88,36 @@ func generate_source_code() -> String:
 func generate_line_mappings() -> Array[Dictionary]:
 	var mappings_in : Dictionary
 	var mappings_out : Dictionary
-	var output_lines : Array[Tokenizer.Line] = tokenizer.get_output_lines()
-	
-	var out_line : int = 0
-	
-	for line in output_lines:
-		var src_line : int = -1
-		
-		# Find the block's starting line from the first valid token.
-		for token in line.tokens:
-			if token.line != -1:
-				src_line = token.line
-				break
-		
-		# Skip empty padding lines added by the tokenizer
-		if src_line == -1 and line.tokens.is_empty():
-			continue
-			
-		for token in line.tokens:
-			var text : String = token.get_value()
-			var lines_in_token : PackedStringArray = text.split("\n")
-			
-			# Map every internal line of the token 1:1
-			for nl_idx in lines_in_token.size():
-				var current_s = src_line + nl_idx
-				var current_o = out_line + nl_idx
-				
-				if not mappings_in.has(current_s):
-					mappings_in[current_s] = current_o
-				
-				mappings_out[current_o] = current_s
-			
-			# Advance the trackers by the number of newlines INSIDE this specific token
-			out_line += lines_in_token.size() - 1
-			src_line += lines_in_token.size() - 1
 
-	mappings_in[tokenizer.line_count-1] = out_line
-	mappings_out[out_line] = tokenizer.line_count-1
-	
+	# Every token knows the line of source code it is from, which holds
+	# no matter how lines got merged, moved or removed
+	var out_line : int = 0
+	for line in tokenizer.get_output_lines():
+		for token in line.tokens:
+			var line_breaks : int = token.get_value().count("\n")
+			if token.source_line != -1:
+				# A line break belongs to the line it ends, while a string may span several
+				for l in (1 if token.is_line_break() else line_breaks + 1):
+					if !mappings_in.has(token.source_line + l):
+						mappings_in[token.source_line + l] = out_line + l
+					if !mappings_out.has(out_line + l):
+						mappings_out[out_line + l] = token.source_line + l
+			out_line += line_breaks
+
+	# Lines of which nothing is left go by the line before them
 	var last_valid : int = 0
 	for i in tokenizer.line_count:
-		var from : int = mappings_in.get(i, -1)
-		if from != -1:
-			last_valid = from
+		if mappings_in.has(i):
+			last_valid = mappings_in[i]
 		else:
 			mappings_in[i] = last_valid
-	
+	last_valid = 0
+	for i in out_line + 1:
+		if mappings_out.has(i):
+			last_valid = mappings_out[i]
+		else:
+			mappings_out[i] = last_valid
+
 	return [mappings_in, mappings_out]
 
 
