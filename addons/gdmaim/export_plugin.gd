@@ -390,7 +390,12 @@ func _export_file(path : String, type : String, features : PackedStringArray) ->
 			var data : String = _binash.get_text(path)
 			
 			if !data.is_empty():
+				var source_data : String = data
 				data = _obfuscate_resource(path, data)
+				if data.strip_edges() == source_data.strip_edges():
+					# Nothing in it got renamed, so the file is exported the way it is
+					_res_obfuscators.erase(path)
+					return
 				skip()
 				
 				if settings.export_mode != settings.ExportMode.TEXT:
