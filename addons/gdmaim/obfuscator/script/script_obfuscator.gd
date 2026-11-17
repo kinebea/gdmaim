@@ -409,54 +409,73 @@ func _string_param_obfuscation(token : Token, next_token : Token) -> void:
 
 
 func _func_feature_filter(token : Token, line : Tokenizer.Line, feature : String, features : PackedStringArray) -> void:
-	if !token.is_keyword("func"):
+	if !token.is_keyword("func") or features.has(feature):
 		return
-	
-	if !features.has(feature):
-		var indentation : int = line.get_indentation()
-		var func_path : String = path.get_basename() + "." + tokenizer.get_next().get_value()#tokenizer.get_next().symbol.get_source_name()
-		var func_body : String = 'printerr("ERROR: illegal call to ' + "'" + func_path + "'!" + '");'
-		var pth : int = 0
-		while !tokenizer.is_eof():
-			token = tokenizer.get_next()
-			if token.is_punctuator("("):
-				pth += 1
-			elif token.is_punctuator(")"):
-				pth -= 1
-				if pth <= 0:
-					break
+
+	var indentation : int = line.get_indentation()
+	var func_path : String = path.get_basename() + "." + tokenizer.get_next().get_value()#tokenizer.get_next().symbol.get_source_name()
+	var func_body : String = 'printerr("ERROR: illegal call to ' + "'" + func_path + "'!" + '");'
+
+	# The parameters
+	var pth : int = 0
+	while !tokenizer.is_eof():
 		token = tokenizer.get_next()
-		if token.is_operator("->"):
-			token = tokenizer.get_next()
-			var ret_type : String = token.get_value()
-			
-			if ret_type != "void":
-				var return_type : String = ret_type.split("[", true, 1)[0]
-				
-				for x in TYPE_MAX:
-					if type_string(x) == return_type:
-						return_type = Tokenizer.get_default_value(x)
-						break
-				
-				if !return_type.is_empty():
-					func_body += "return {0}".format([return_type])
-			
-		var line_idx_from : int = tokenizer.find_output_line(line)
-		var line_idx : int = line_idx_from + 2
-		var last_valid : int = -1
-		tokenizer.get_output_line(line_idx_from + 1).clear_tokens()
-		tokenizer.get_output_line(line_idx_from + 1).insert_token(1, Token.new(Token.Type.KEYWORD, func_body, 0, line_idx_from + 1))
-		while line_idx < tokenizer.get_output_line_count():
-			var tline : Tokenizer.Line = tokenizer.get_output_line(line_idx)
-			if tline.has_statement() and tline.get_indentation() <= indentation:
+		if token.is_punctuator("("):
+			pth += 1
+		elif token.is_punctuator(")"):
+			pth -= 1
+			if pth <= 0:
 				break
-			last_valid = line_idx
-			if tline.tokens:
-				tokenizer.seek_token(tline.tokens[0])
-			line_idx += 1
-		if last_valid != -1:
-			for l in range(line_idx_from + 2, last_valid + 1):
-				tokenizer.get_output_line(l).clear_tokens()
+
+	# The return type, up to the colon that begins the body
+	var return_type : Array[Token]
+	var colon : Token = null
+	while !tokenizer.is_eof():
+		token = tokenizer.get_next()
+		if token.is_punctuator(":"):
+			colon = token
+			break
+		elif !token.is_line_break() and !token.is_indentation():
+			return_type.append(token)
+	if !colon:
+		return
+
+	if return_type.size() >= 2 and return_type[0].is_operator("->") and !return_type[1].has_value("void"):
+		# Something of the type has to be returned still
+		var type_name : String = return_type[1].get_value()
+		var value : String = "null"
+		if return_type.size() == 2 or return_type[2].is_punctuator("["):
+			var default : String = _get_default_value(type_name)
+			if !default.is_empty():
+				value = default
+			elif type_name != "Variant" and type_name != "Object" and !ClassDB.class_exists(type_name) and !(return_type[1].symbol and _symbol_table.is_class_name(return_type[1].symbol.get_source_name())):
+				value = ""
+		else:
+			value = ""
+		if value.is_empty():
+			# Neither a built-in type nor a class, for which null would do. The type is
+			# dropped, as there is no telling what to return for it.
+			value = "null"
+			for type_token in return_type:
+				tokenizer.get_output_line(type_token.line).erase_token(type_token)
+		func_body += "return " + value
+
+	# The body takes the place of whatever follows the colon
+	var colon_line : Tokenizer.Line = tokenizer.get_output_line(colon.line)
+	for i in range(colon_line.tokens.size() - 1, colon_line.tokens.find(colon), -1):
+		if !colon_line.tokens[i].is_line_break():
+			colon_line.remove_token(i)
+	colon_line.insert_token(colon_line.tokens.find(colon) + 1, Token.new(Token.Type.KEYWORD, func_body, 0, colon.line))
+
+	var line_idx : int = colon.line + 1
+	while line_idx < tokenizer.get_output_line_count():
+		var tline : Tokenizer.Line = tokenizer.get_output_line(line_idx)
+		if tline.has_statement() and tline.get_indentation() <= indentation:
+			break
+		if tline.tokens:
+			tokenizer.seek_token(tline.tokens[0])
+		tline.clear_tokens()
+		line_idx += 1
 
 
 func _shuffle_toplevel() -> void:
