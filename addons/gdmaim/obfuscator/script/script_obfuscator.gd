@@ -575,11 +575,11 @@ func _shuffle_toplevel() -> void:
 
 	if on_ready:
 		var idx : int = 0
-		var max_spacing : int = mini(blocks.size() / on_ready.size() * 2, blocks.size() + 1)
+		# At least 1, so every @onready var lands after the previous one and they keep their order
+		var max_spacing : int = maxi(1, mini(blocks.size() / on_ready.size() * 2, blocks.size() + 1))
 		random.seed = hash(path) + path.length() + _symbol_table._seed
 		for block in on_ready:
-			if max_spacing:
-				idx += maxi(1, random.randi() % max_spacing)
+			idx += maxi(1, random.randi() % max_spacing)
 			blocks.insert(mini(idx, blocks.size()), block)
 	
 	lines.clear()
