@@ -101,19 +101,22 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 
 	_binash = Binash.new(path)
 	
+	# Gather autoloads, which the obfuscator needs to know regardless of any setting
 	_inject_autoload = ""
-	if settings.source_map_inject_name:
-		var cfg : ConfigFile = ConfigFile.new()
-		cfg.load("res://project.godot")
-		for autoload : String in (cfg.get_section_keys("autoload") if cfg.has_section("autoload") else []):
-			_autoloads[cfg.get_value("autoload", autoload).replace("*", "")] = autoload
-			if !_inject_autoload and cfg.get_value("autoload", autoload).begins_with("*") and cfg.get_value("autoload", autoload).ends_with(".gd"):
-				_inject_autoload = cfg.get_value("autoload", autoload).replace("*", "")
-				if _inject_autoload.begins_with("uid://"):
-					_inject_autoload = ResourceUID.uid_to_path(_inject_autoload)
-			_symbols.lock_symbol_name(autoload)
-		if !_inject_autoload:
-			push_warning("GDMaim - No valid autoload found! GDMaim will not be able to print the source map filename to the console on the exported build.")
+	var cfg : ConfigFile = ConfigFile.new()
+	cfg.load("res://project.godot")
+	for autoload : String in (cfg.get_section_keys("autoload") if cfg.has_section("autoload") else []):
+		var autoload_path : String = cfg.get_value("autoload", autoload)
+		var is_singleton : bool = autoload_path.begins_with("*")
+		autoload_path = autoload_path.replace("*", "")
+		if autoload_path.begins_with("uid://"):
+			autoload_path = ResourceUID.uid_to_path(autoload_path)
+		_autoloads[autoload_path] = autoload
+		if settings.source_map_inject_name and !_inject_autoload and is_singleton and autoload_path.ends_with(".gd"):
+			_inject_autoload = autoload_path
+		_symbols.lock_symbol_name(autoload)
+	if settings.source_map_inject_name and !_inject_autoload:
+		push_warning("GDMaim - No valid autoload found! GDMaim will not be able to print the source map filename to the console on the exported build.")
 	
 	# Gather built-in variant and global symbols
 	var builtins : Script = preload("builtins.gd")
