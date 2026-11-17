@@ -31,14 +31,15 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 		return true
 	
 	var lines : PackedStringArray = source_data.split("\n")
+	var out : PackedStringArray
 	var i : int = 0
 	while i < lines.size():
 		var line : String = lines[i]
 		if line.begins_with("\""):
-			_data += line + "\n"
+			out.append(line)
 			i += 1
 			continue
-		
+
 		if line.begins_with('[connection signal="') or line.begins_with('[node name="'):
 			var node_paths : bool = false
 			var tokens : PackedStringArray = line.split(" ", false)
@@ -72,11 +73,10 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 					line = line.replace('script_class="{0}"'.format([to_replace]),'script_class="{0}"'.format([new_symbol.name]))
 					_Logger.write(str(i+1) + " found script_class = '" + to_replace)
 					
-		_data += line + "\n"
+		out.append(line)
 		i += 1
-		
+
 		if line.begins_with("[node") or line.begins_with("[sub_resource") or line.begins_with("[resource"):
-			var tmp_lines : String
 			# A node with neither type nor instance is one of an instanced scene's, set from
 			# outside: its script is in that scene.
 			var has_script : bool = line.contains("instance=") or line.contains('type="Animation"') or (line.begins_with("[node") and !line.contains("type="))
@@ -84,18 +84,16 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 			while j < lines.size():
 				if lines[j].begins_with("["):
 					break
-				
-				tmp_lines += lines[j] + "\n"
-				
+
 				var tokens : PackedStringArray = lines[j].split(" = ", false, 1)
 				if tokens.size() == 2 and tokens[0] == "script":
 					has_script = true
 					_Logger.write(str(i+1) + " found script " + line + " " + tokens[1])
-				
+
 				j += 1
-			
+
 			if !has_script:
-				_data += tmp_lines
+				out.append_array(lines.slice(i, j))
 				i = j
 			else:
 				j = mini(j, lines.size())
@@ -125,12 +123,12 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 						if new_symbol:
 							line = '"method": &"' + str(new_symbol.name) + '"'
 							_Logger.write(str(i+1) + " found method '" + method + "' = " + str(new_symbol.name))
-					
-					_data += line + "\n"
+
+					out.append(line)
 					i += 1
-	
-	_data = _data.strip_edges(false, true) + "\n"
-	
+
+	_data = "\n".join(out).strip_edges(false, true) + "\n"
+
 	return true
 
 func get_source_data() -> String:
