@@ -489,21 +489,17 @@ func _parse_script(path : String) -> void:
 		var data : String = ""
 		
 		if null == _rgx:
-			_rgx = RegEx.create_from_string('(?m)script\\/source\\s*=\\s*"((?:\\\\.|[^"\\\\])*)\n"')
-			
+			_rgx = RegEx.create_from_string('script\\/source\\s*=\\s*"((?:\\\\.|[^"\\\\])*)"')
+
 		if path.ends_with(".scn"):
 			data = _binash.get_text(path)
 		else:
-			var file : FileAccess = FileAccess.open(path, FileAccess.READ)
-			data = file.get_as_text()
-			file.close()
-			
-		var r_matchs : Array[RegExMatch] = _rgx.search_all(data)
-		if r_matchs.size() > 0:
-			for r_match : RegExMatch in r_matchs:
-				if null != r_match and r_match.strings.size() > 1:
-					source_codes.append(r_match.strings[1].replace("\\\"", "\""))
-		
+			data = FileAccess.get_file_as_string(path)
+
+		if data.contains("script/source"):
+			for r_match : RegExMatch in _rgx.search_all(data):
+				source_codes.append(_unescape(r_match.get_string(1)))
+
 		as_embedded = source_codes.size() > 0
 		for x : int in range(source_codes.size()):
 			var _source_code : String = source_codes[x]
@@ -631,6 +627,12 @@ func _inject_source_map_name(obfuscator : ScriptObfuscator) -> void:
 	obfuscator.tokenizer.insert_output_line(lines.size(), Tokenizer.Line.new([Token.new(Token.Type.LITERAL, code, -1, -1)]))
 
 
+# Undoes the escaping of a string in a text resource
+static func _unescape(text : String) -> String:
+	var placeholder : String = String.chr(0xE000)
+	return text.replace("\\\\", placeholder).replace("\\\"", '"').replace(placeholder, "\\")
+
+
 func _obfuscate_resource(path : String, source_data : String) -> String:
 	var obfuscator := ResourceObfuscator.new(path)
 	_res_obfuscators[path] = obfuscator
@@ -651,10 +653,16 @@ func _obfuscate_resource(path : String, source_data : String) -> String:
 	
 	var data : String = obfuscator.get_data()
 	if codes.size() > 0:
-		for code : String in codes:
-			data = _rgx.sub(data, str("[__SRC__] = \"",code.replace("\"", "\\\"").replace("$", "[__CNT__]").strip_edges(),"\n\""))
+		# Each script takes the place of the one it was made from
+		var result : String
+		var from : int = 0
+		var matches : Array[RegExMatch] = _rgx.search_all(data)
+		for i in mini(matches.size(), codes.size()):
+			var code : String = codes[i].strip_edges().replace("\\", "\\\\").replace('"', "\\\"")
+			result += data.substr(from, matches[i].get_start(1) - from) + code + "\n"
+			from = matches[i].get_end(1)
+		obfuscator.set_data(result + data.substr(from))
 
-	obfuscator.set_data(data.replace("[__SRC__]", "script/source").replace("[__CNT__]", "$"))
 	return obfuscator.get_data()
 
 
