@@ -258,8 +258,26 @@ func _export_end() -> void:
 	
 	if _exported_script_count == 0:
 		push_error('GDMaim - No scripts have been exported! Please set the export mode of scripts to "Text" in the current export template.')
-		return
-	
+	else:
+		_save_source_map()
+
+	# Revert temporary changes made to Godot files
+	_godot_files.restore()
+
+	_autoloads.clear()
+	_symbols = null
+	_src_obfuscators.clear()
+	_res_obfuscators.clear()
+	_Logger.clear_all()
+	_binash = null
+
+	if is_instance_valid(settings):
+		settings.custom_token_regex_buffer.clear()
+
+
+
+
+func _save_source_map() -> void:
 	_write_file_str(get_script().resource_path.get_base_dir() + "/.gitignore", "cache/\nsource_maps/\nbackup/")
 	
 	_build_data_path(settings.source_map_path)
@@ -315,19 +333,6 @@ func _export_end() -> void:
 		print("GDMaim - A source map has been saved to '" + full_source_map_path + "'")
 	else:
 		push_warning("GDMaim - Failed to write source map to '" + full_source_map_path + "'!")
-	
-	# Revert temporary changes made to Godot files
-	_godot_files.restore()
-	
-	_autoloads.clear()
-	_symbols = null
-	_src_obfuscators.clear()
-	_res_obfuscators.clear()
-	_Logger.clear_all()
-	_binash = null
-	
-	if is_instance_valid(settings):
-		settings.custom_token_regex_buffer.clear()
 
 
 
