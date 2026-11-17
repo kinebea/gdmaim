@@ -538,7 +538,7 @@ func _shuffle_toplevel() -> void:
 			add_block.call(current_block, current_is_onready)
 			current_block = []
 			current_is_onready = true
-		elif line.get_indentation() == 0 and starter_token and (starter_token.is_keyword() or starter_token.is_annotation()) and (!prev_starter_token or (!prev_starter_token.has_value("@abstract") and !prev_starter_token.has_value("@rpc") and !(prev_starter_token.get_value().begins_with("@export") and !prev_line.has_token_value("var")))):
+		elif line.get_indentation() == 0 and starter_token and (starter_token.is_keyword() or starter_token.is_annotation()) and !_is_annotation_line(prev_line):
 			add_block.call(current_block, current_is_onready)
 			current_block = []
 			current_is_onready = false
@@ -585,6 +585,16 @@ func _shuffle_toplevel() -> void:
 	lines.clear()
 	for block in [top_block] + blocks:
 		lines.append_array(block)
+
+
+# Whether the line holds nothing but annotations, which then apply to the line after it
+func _is_annotation_line(line : Tokenizer.Line) -> bool:
+	if !line or !line.tokens or !line.tokens[0].is_annotation():
+		return false
+	for token in line.tokens:
+		if token.is_keyword():
+			return false
+	return true
 
 
 # Whether a top-level block declares a variable, as opposed to a function, class, signal, etc.
