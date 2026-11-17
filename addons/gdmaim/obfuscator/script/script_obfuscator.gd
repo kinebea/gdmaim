@@ -615,6 +615,8 @@ func _strip_code() -> void:
 	for l in range(lines.size() - 1, -1, -1):
 		var line : Tokenizer.Line = lines[l]
 		
+		var line_removed : bool = false
+		
 		if _Settings.current.strip_comments or _Settings.current.strip_extraneous_spacing or _Settings.current.strip_editor_annotations:
 			for i in range(line.tokens.size() - 1, -1, -1):
 				var token : Token = line.tokens[i]
@@ -642,7 +644,8 @@ func _strip_code() -> void:
 						# These annotations can only be on their own line
 						if token.get_value() in Builtins.ATTRIBUTES:
 							tokenizer.remove_output_line(l)
-							continue
+							line_removed = true
+							break
 						elif token.get_value() in Builtins.DECORATORS:
 							continue
 						# These might have parenthesis after them, with whitespace possibly after the parenthesis
@@ -672,6 +675,9 @@ func _strip_code() -> void:
 							while line.tokens.size() > i and line.tokens[i].is_whitespace(): line.remove_token(i)
 							continue
 		
+		if line_removed:
+			continue
+
 		# Strip empty lines
 		if _Settings.current.strip_empty_lines and str(line).replace(" ", "").replace("\n", "").replace("\t", "").replace(";", "").is_empty():
 			tokenizer.remove_output_line(l)
