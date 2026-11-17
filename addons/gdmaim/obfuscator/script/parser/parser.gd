@@ -844,26 +844,28 @@ func _parse_params(parent : AST.ASTNode) -> Array[AST.Parameter]:
 	if _tokenizer.is_eof() or !_tokenizer.peek().is_punctuator("("):
 		return params
 	
-	var pth : int = 0
+	var depth : int = 0 # Of all brackets, as a default value may hold an array or a dictionary
 	var param := AST.Parameter.new(parent)
 	var expect_symbol : bool = true
 	while !_tokenizer.is_eof():
 		var token : Token = _tokenizer.peek()
 		if token.is_punctuator():
 			_tokenizer.get_next()
-			if token.has_value("("):
-				pth += 1
-			elif token.has_value(")"):
-				pth -= 1
-				if pth <= 0:
-					if param.symbol:
-						params.append(param)
-					param = AST.Parameter.new(parent)
-					return params
-			elif token.has_value(",") and pth == 1:
-				expect_symbol = true
-				params.append(param)
-				param = AST.Parameter.new(parent)
+			match token.get_value():
+				"(", "[", "{":
+					depth += 1
+				")", "]", "}":
+					depth -= 1
+					if depth <= 0:
+						if param.symbol:
+							params.append(param)
+						return params
+				",":
+					if depth == 1:
+						expect_symbol = true
+						if param.symbol:
+							params.append(param)
+						param = AST.Parameter.new(parent)
 		elif _is_dictionary_key(token):
 			_tokenizer.get_next()
 		elif token.is_symbol():
@@ -875,9 +877,11 @@ func _parse_params(parent : AST.ASTNode) -> Array[AST.Parameter]:
 				token.link_symbol(param.symbol)
 				if _blocked or _line_has_hint(PreprocessorHints.LOCK_SYMBOLS):
 					_symbol_table.lock_symbol(param.symbol)
-	
 			else:
-				_parse_symbol_path(parent)
+				# Part of a default value, which may refer to the parameters before it
+				_parse_symbol_path(param)
+		elif token.is_comment():
+			_parse_comment(token)
 		else:
 			_tokenizer.get_next()
 	
