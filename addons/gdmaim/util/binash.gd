@@ -8,71 +8,55 @@ var debug : bool = true
 var _id : String = ""
 var _buffer : Dictionary = {}
 
+# Stands in for the scripts and scenes a converted file depends on, which are not needed to convert it.
+# A script gets replaced, so that properties are kept under their new names instead of being checked
+# against the script. A scene gets replaced, so that it and all it depends on is not loaded for nothing.
+# Anything else is left to its own loader, as a property may only take a resource of the right type.
 class Formo extends ResourceFormatLoader:
 	var _buffer : Dictionary = {}
-	
+
 	const SCBOYS : PackedStringArray = [
 		"gd", "cs"
 		]
-		
+
 	const PESCEN : PackedStringArray = [
 		"tscn", "scn"
 		]
-	
-	var _resor : RefCounted = null
+
 	var _pathor : String = ""
-	var _noud : Node = null
-	
-	func _init() -> void:
-		_resor = RefCounted.new()
-		_noud = Node.new()
-		
-	func _notification(what: int) -> void:
-		if what != NOTIFICATION_PREDELETE:
-			return
-			
-		if is_instance_valid(_noud):
-			_noud.queue_free()
-	
+
 	func _exists(path: String) -> bool:
 		return true
-		
+
 	func _get_recognized_extensions() -> PackedStringArray:
-		return ["tres", "res", "tscn", "scn", "gd", "cs"]
-		
+		return ["tscn", "scn", "gd", "cs"]
+
 	func _recognize_path(path: String, _type: StringName) -> bool:
-		return path != _pathor
-		
+		var exto : String = path.get_extension()
+		return path != _pathor and (exto in SCBOYS or exto in PESCEN)
+
 	func _handles_type(type: StringName) -> bool:
 		return true
-		
+
 	func _get_cryptor() -> GDScript:
 		var sc : GDScript = GDScript.new()
 		sc.source_code = " pass"
 		return sc
-		
+
 	func _load(path: String, original_path: String, use_sub_threads: bool, cache_mode: int) -> Variant:
 		if path == _pathor:
 			return null
-			
-		var exto : String = path.get_extension()
-				
-		if exto in SCBOYS:
-			if !_buffer.has(path):
-				_buffer[path] = _get_cryptor()
-			return _buffer[path]
-		
-		elif exto in PESCEN:
-			return _noud
-		
-		return _resor
-		
+
+		if !_buffer.has(path):
+			_buffer[path] = _get_cryptor() if path.get_extension() in SCBOYS else PackedScene.new()
+		return _buffer[path]
+
 	func _get_resource_uid(path: String) -> int:
 		return 0
-		
+
 	func set_pathor(jao_pathor : String) -> void:
 		_pathor = jao_pathor
-	
+
 	func reset() -> void:
 		_pathor = ""
 
