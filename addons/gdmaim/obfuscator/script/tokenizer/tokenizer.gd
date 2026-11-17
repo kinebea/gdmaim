@@ -454,12 +454,17 @@ func _read_whitespace() -> void:
 
 func _read_comment() -> void:
 	var text : String = _read_until("\n")
-	if text.begins_with(_Settings.current.preprocessor_prefix):
-		var hints : PackedStringArray = text.split(_Settings.current.preprocessor_prefix)
-		for hint in hints:
+
+	# Hints may follow other text, as in "# for the save file ##LOCK_SYMBOLS"
+	var prefix : String = _Settings.current.preprocessor_prefix
+	var hints_at : int = text.find(prefix) if !prefix.is_empty() else -1
+	if hints_at != -1:
+		for hint in text.substr(hints_at).split(prefix):
 			var slices : PackedStringArray = hint.split(" ", false, 1)
 			if slices:
-				_output.back().add_hint(slices[0], slices[1] if slices.size() == 2 else "")
+				var hint_name : String = slices[0].strip_edges()
+				var args : String = slices[1].strip_edges() if slices.size() == 2 else ""
+				_output.back().add_hint(hint_name, args)
 	_add_comment(text)
 
 func _read_continue_line() -> void:
