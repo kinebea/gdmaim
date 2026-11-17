@@ -645,8 +645,10 @@ func _strip_code() -> void:
 							continue
 						elif token.get_value() in Builtins.DECORATORS:
 							continue
-						# Other @export's and a few others might have parenthesis after them, with whitespace possibly after the parenthesis
-						elif (token.get_value().contains("@export") or token.get_value() in Builtins.ANNOTATIONS) and !line.has_hint(PreprocessorHints.PRESERVE_ANNOTATION):
+						# These might have parenthesis after them, with whitespace possibly after the parenthesis
+						# @export on a variable stays: it is not only for the editor, but also decides
+						# what duplicate(), local-to-scene and ResourceSaver copy
+						elif token.get_value() in Builtins.ANNOTATIONS and !line.has_hint(PreprocessorHints.PRESERVE_ANNOTATION):
 							line.remove_token(i)
 							if line.tokens.size() > i and line.tokens[i].is_punctuator("("):
 								var last_token: Token

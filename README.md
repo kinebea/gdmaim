@@ -99,7 +99,7 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 `Strip Extraneous Spacing`: If enabled, spaces and tabs that are not required, get removed.
 
-`Strip Editor Annotations`: If enabled, annotations used exclusively by the editor will be removed.
+`Strip Editor Annotations`: If enabled, annotations used exclusively by the editor will be removed, like `@export_group`, `@icon` and `@warning_ignore`. `@export` on a variable is kept, because it also decides what `duplicate()`, local-to-scene resources and `ResourceSaver` copy.
 
 `Strip Static Typing`: Removes the types of variables, parameters and return values. Exported variables keep their type, which `@export` relies on.
 
@@ -544,17 +544,14 @@ This can be done automatically by double-clicking the imported file('.glb' for e
 ### Save and Load Custom Resource Types (In runtime of exported games)
 
 If you work with custom resources, you've probably encountered errors like the following:
-  * Annotations like ```@export``` have disappeared.
   * Your variable names do not match in different exported versions.
   * ```@export``` doesn't work if it doesn't have a defined type when it's removed with the ```strip static typed``` function.
 
 #### Solutions:
 ##### Option 1 (work as Local by File)
-* You must use the preprocessor like ```##PRESERVE_ANNOTATION``` at the far right of the line for prevent remove the ```@export``` annotation
 * You must use the preprocessor like ```##STRIP_STATIC_TYPED_FILE_IGNORE``` to prevent the deletion of the typing in the file if you are using that function.
 
 ##### Option 2 (work as Global by Project)
-* In the settings, you must have unchecked ```Strip Editor Annotations```
 * In the settings, you must have unchecked ```Strip Static Typing```
 
 In both cases you will need to block the obfuscation of the tokens (Your variables) that you will later recover, for that you can use one of the following options:
