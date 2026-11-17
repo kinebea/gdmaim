@@ -18,6 +18,7 @@ var _is_autoload : bool
 var _current_indentation : int
 var _bracket_lock : int = 0
 var _statement_break : bool = false
+var _dictionary_keys : Dictionary
 
 # CUSTOM INTERNALS
 var _blocked : bool = false
@@ -28,7 +29,8 @@ func read(tokenizer : Tokenizer, symbol_table : SymbolTable, autoload_symbol : S
 	_symbol_table = symbol_table
 	_class_symbol = autoload_symbol
 	_is_autoload = autoload_symbol != null
-	
+	_find_dictionary_keys()
+
 	var ast := AST.Class.new(null)
 	ast.body = _parse_block(ast, -1)
 	
@@ -38,7 +40,46 @@ func read(tokenizer : Tokenizer, symbol_table : SymbolTable, autoload_symbol : S
 
 
 func get_class_symbol() -> SymbolTable.Symbol:
-	return _class_symbol 
+	return _class_symbol
+
+
+# Finds the keys of dictionaries written as { key = value }. Such a key is a string
+# and not an identifier, so it must keep its name.
+func _find_dictionary_keys() -> void:
+	const SKIPPED : int = Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.INDENTATION | Token.Type.LINE_BREAK | Token.Type.STATEMENT_BREAK
+
+	_dictionary_keys.clear()
+
+	var brackets : Array[bool] # For every open bracket, whether it is that of a dictionary
+	var key : Token = null
+	var prev : Token = null
+	var prev_prev : Token = null
+	for token : Token in _tokenizer.get_tokens():
+		if token.type & SKIPPED:
+			continue
+
+		if key and token.is_operator("="):
+			_dictionary_keys[key.idx] = true
+		key = null
+
+		if token.is_punctuator():
+			match token.get_value():
+				"{":
+					var is_enum : bool = prev != null and (prev.is_keyword("enum") or (prev.is_symbol() and prev_prev != null and prev_prev.is_keyword("enum")))
+					brackets.append(!is_enum)
+				"(", "[":
+					brackets.append(false)
+				")", "]", "}":
+					brackets.pop_back()
+		elif token.is_symbol() and brackets and brackets.back() and (prev.is_punctuator("{") or prev.is_punctuator(",")):
+			key = token
+
+		prev_prev = prev
+		prev = token
+
+
+func _is_dictionary_key(token : Token) -> bool:
+	return token != null and _dictionary_keys.has(token.idx)
 
 
 func _parse_block_with_callback(parent : AST.ASTNode, indentation : int, token_process: Callable) -> AST.Sequence:
@@ -187,6 +228,10 @@ func _parse_annotation(parent : AST.ASTNode) -> AST.ASTNode:
 
 
 func _parse_symbol(parent : AST.ASTNode) -> AST.Symbol:
+	if _is_dictionary_key(_tokenizer.peek()):
+		_tokenizer.get_next()
+		return null
+
 	var ast := AST.Symbol.new(parent)
 	
 	ast.path = _parse_symbol_path(ast)
@@ -786,6 +831,8 @@ func _parse_params(parent : AST.ASTNode) -> Array[AST.Parameter]:
 				expect_symbol = true
 				params.append(param)
 				param = AST.Parameter.new(parent)
+		elif _is_dictionary_key(token):
+			_tokenizer.get_next()
 		elif token.is_symbol():
 			if expect_symbol:
 				_tokenizer.get_next()
