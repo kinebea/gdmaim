@@ -533,24 +533,34 @@ func _read_multi_string() -> void:
 	_can_be_nodepath = has_newline
 
 func _read_node_path() -> void:
-	var str : String
-	var str_char : String
-	
-	while !_stream.is_eof():
-		var char : String = _stream.peek()
-		if char == "\n" or (_is_punctuator(char) and (char != "." or !str_char)) or (_is_whitespace(char) and !str_char):
-			break
-		if char == "'" or char == '"':
-			str_char = ""
-			if str == "$" or str == "%":
-				str_char = char
-		str += char
-		_stream.get_next()
-	
+	var str : String = _stream.get_next() # $ or %
+	var quote : String = _stream.peek()
+
+	if quote == '"' or quote == "'":
+		# A quoted path, in which anything goes up to the closing quote
+		str += _stream.get_next()
+		while !_stream.is_eof():
+			var char : String = _stream.get_next()
+			str += char
+			if char == "\\":
+				str += _stream.get_next()
+			elif char == quote or char == "\n":
+				break
+	else:
+		while !_stream.is_eof():
+			var char : String = _stream.peek()
+			if char == "\n" or char == '"' or char == "'" or _is_punctuator(char) or _is_whitespace(char):
+				break
+			# An operator other than the / and % of a path ends it, as in %Bar==x
+			if char != "/" and char != "%" and _is_operator(char):
+				break
+			str += char
+			_stream.get_next()
+
 	if str == '%':
 		_add_operator(str)
 		return
-	
+
 	_add_node_path(str)
 	_can_be_nodepath = false
 
