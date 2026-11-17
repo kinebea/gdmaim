@@ -105,7 +105,7 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 `Initialize Stripped Typed Variables`: Complement of `Strip Static Typing`. A variable of a built-in type that has no value is given the one its type starts out with, like `var count=0` for `var count : int`. A variable without a value whose type might be an enum keeps its type instead, as it would start out as `null` and not as `0` otherwise.
 
-`Strip Lines Matching RegEx`: If enabled, any lines matching the regular expression will be removed.
+`Strip Lines Matching RegEx`: If enabled, any statement that begins on a line matching the regular expression will be removed. The expression is applied to the line as it is written in the source code, including its comment.
 
 `Process Feature Filters`: If enabled, process automatic filtering of code, based on export template feature tags. For more information, see [feature filters](#preprocessor-hints).
 

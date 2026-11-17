@@ -28,6 +28,7 @@ var _can_be_nodepath : bool = true
 var _space_indent : int = 4
 var _source_line : int # Line of the source code the token being read begins on
 var _source_hints : Dictionary # Hints by the line of the source code they are on
+var _source_lines : PackedStringArray
 
 ## PreprocessorHints
 var _stream_preprocessor : Dictionary = {}
@@ -44,6 +45,7 @@ func read(source_code : String) -> void:
 	_read_preprocessor(source_code)
 	_space_indent = _detect_space_indent(source_code)
 
+	_source_lines = source_code.split("\n")
 	_stream = Stream.new(source_code)
 	while _read_next_token(): pass
 
@@ -77,6 +79,11 @@ func is_stripped_typing_initialized() -> bool:
 # got merged with its neighbours, like those of an array spread over several lines.
 func has_source_hint(source_line : int, hint : String) -> bool:
 	return _source_hints.get(source_line, {}).has(hint)
+
+
+# Returns the given line of the source code as it was written
+func get_source_line(source_line : int) -> String:
+	return _source_lines[source_line] if source_line >= 0 and source_line < _source_lines.size() else ""
 
 
 func get_source_hint_args(source_line : int, hint : String) -> String:

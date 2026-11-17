@@ -617,6 +617,11 @@ func _strip_code() -> void:
 		
 		var line_removed : bool = false
 		
+		# Strip lines matching RegEx, which is applied to the line as it is in the source code
+		if regex.is_valid() and _matches_source(line, regex):
+			_strip_statement(lines, l)
+			continue
+		
 		if _Settings.current.strip_comments or _Settings.current.strip_extraneous_spacing or _Settings.current.strip_editor_annotations:
 			for i in range(line.tokens.size() - 1, -1, -1):
 				var token : Token = line.tokens[i]
@@ -682,12 +687,59 @@ func _strip_code() -> void:
 		if _Settings.current.strip_empty_lines and str(line).replace(" ", "").replace("\n", "").replace("\t", "").replace(";", "").is_empty():
 			tokenizer.remove_output_line(l)
 			continue
-		
-		# Strip lines matching RegEx
-		if regex.is_valid() and regex.search(str(line)):
-			tokenizer.remove_output_line(l)
-			continue
-			
+
+
+# Whether the line of source code the output line begins on matches the expression
+func _matches_source(line : Tokenizer.Line, regex : RegEx) -> bool:
+	for token in line.tokens:
+		if token.source_line != -1:
+			return regex.search(tokenizer.get_source_line(token.source_line)) != null
+	return false
+
+
+# Removes the statement that begins on the given output line
+func _strip_statement(lines : Array[Tokenizer.Line], l : int) -> void:
+	var line : Tokenizer.Line = lines[l]
+	var indentation : int = line.get_indentation()
+
+	# The lines the statement goes on in, as long as it has an open bracket
+	var depth : int = 0
+	var last : int = l
+	while last < lines.size():
+		for token in lines[last].tokens:
+			if token.is_punctuator() and "([{".contains(token.get_value()):
+				depth += 1
+			elif token.is_punctuator() and ")]}".contains(token.get_value()):
+				depth -= 1
+		if depth <= 0:
+			break
+		last += 1
+	last = mini(last, lines.size() - 1)
+
+	# A block cannot be empty, so its only statement is replaced
+	var before : Tokenizer.Line = null
+	for i in range(l - 1, -1, -1):
+		if lines[i].has_statement():
+			before = lines[i]
+			break
+	var after : Tokenizer.Line = null
+	for i in range(last + 1, lines.size()):
+		if lines[i].has_statement():
+			after = lines[i]
+			break
+	var is_whole_block : bool = indentation > 0 and before != null and before.get_indentation() < indentation and (after == null or after.get_indentation() < indentation)
+
+	for i in range(last, l, -1):
+		lines.remove_at(i)
+	if is_whole_block:
+		var kept : Array[Token] = [line.tokens[0], Token.new(Token.Type.KEYWORD, "pass", -1, -1)]
+		if line.tokens.back().is_line_break() or (last > l):
+			kept.append(Token.new(Token.Type.LINE_BREAK, "\n", -1, -1))
+		line.tokens = kept
+	else:
+		lines.remove_at(l)
+
+
 func _is_exclude_required(src : String) -> bool:
 	var _str : String = "{0}{1}".format([_Settings.current.preprocessor_prefix, PreprocessorHints.EXCLUDE_HINT])
 	var x : int = src.find(_str)
