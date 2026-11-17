@@ -25,6 +25,7 @@ var _idx : int
 var _line : int
 var _output : Array[Line]
 var _can_be_nodepath : bool = true
+var _space_indent : int = 4
 
 ## PreprocessorHints
 var _stream_preprocessor : Dictionary = {}
@@ -39,7 +40,8 @@ func read(source_code : String) -> void:
 	_output = [Line.new()]
 	
 	_read_preprocessor(source_code)
-	
+	_space_indent = _detect_space_indent(source_code)
+
 	_stream = Stream.new(source_code)
 	while _read_next_token(): pass
 
@@ -410,8 +412,28 @@ func _read_sequence_break_line() -> bool:
 		break
 	return false
 
+# Returns how many spaces make up one indentation level in the given source code.
+# A file may use another size than the editor is set to, so this is read from the
+# first indented block. Falls back to the editor setting if spaces are not used.
+func _detect_space_indent(src : String) -> int:
+	if src.contains("\n "):
+		var prev_line : String = ""
+		var prev_spaces : int = 0
+		for line : String in src.split("\n"):
+			var code : String = line.strip_edges()
+			if code.is_empty() or code.begins_with("#"):
+				continue
+			var spaces : int = line.length() - line.lstrip(" ").length()
+			if spaces > prev_spaces and prev_line.ends_with(":"):
+				return spaces - prev_spaces
+			prev_line = code
+			prev_spaces = spaces
+
+	return _Settings.current.space_as_tabs
+
+
 func _read_indentation() -> void:
-	var x0 : int = _Settings.current.space_as_tabs
+	var x0 : int = _space_indent
 	var ax : int = 0
 	var zf : bool = true
 	
