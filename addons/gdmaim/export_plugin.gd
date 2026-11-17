@@ -365,9 +365,7 @@ func _export_file(path : String, type : String, features : PackedStringArray) ->
 		return
 	
 	var ext : String = path.get_extension()
-	if ext == "csv":
-		skip() #HACK
-	elif ext == "ico":
+	if ext == "ico":
 		skip() #HACK
 		add_file(path, FileAccess.get_file_as_bytes(path), true) #HACK
 	elif ext == "tres" or ext == "tscn":
