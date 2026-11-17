@@ -27,6 +27,7 @@ var _output : Array[Line]
 var _can_be_nodepath : bool = true
 var _space_indent : int = 4
 var _source_line : int # Line of the source code the token being read begins on
+var _source_hints : Dictionary # Hints by the line of the source code they are on
 
 ## PreprocessorHints
 var _stream_preprocessor : Dictionary = {}
@@ -62,6 +63,16 @@ func _read_preprocessor(src : String) -> void:
 
 func has_preprocessor(preprocessor : String) -> bool:
 	return _stream_preprocessor.has(preprocessor)
+
+
+# Hints apply to the line of source code they are written on, even when that line
+# got merged with its neighbours, like those of an array spread over several lines.
+func has_source_hint(source_line : int, hint : String) -> bool:
+	return _source_hints.get(source_line, {}).has(hint)
+
+
+func get_source_hint_args(source_line : int, hint : String) -> String:
+	return _source_hints.get(source_line, {}).get(hint, "")
 
 func reset() -> void:
 	_idx = -1
@@ -467,6 +478,9 @@ func _read_comment() -> void:
 				if hint_name == "OBFUSCATE_STRING_SEED":
 					hint_name = PreprocessorHints.OBFUSCATE_STRINGS_SEED # As it used to be spelled in the documentation
 				_output.back().add_hint(hint_name, args)
+				if !_source_hints.has(_source_line):
+					_source_hints[_source_line] = {}
+				_source_hints[_source_line][hint_name] = args
 	_add_comment(text)
 
 func _read_continue_line() -> void:

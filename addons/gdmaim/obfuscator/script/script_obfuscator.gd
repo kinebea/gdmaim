@@ -55,12 +55,13 @@ func run(features : PackedStringArray) -> bool:
 				PreprocessorHints.END_OBFUSCATE_STRINGS:
 					_str_processing = false		
 		
-		if line.has_hint(PreprocessorHints.OBFUSCATE_STRINGS_SEED):
-			_symbol_table.set_custom_seed(line.get_hint_args(PreprocessorHints.OBFUSCATE_STRINGS_SEED).to_int())
+		# Hints for strings go by the line of source code, as several of those may have been merged into one
+		if tokenizer.has_source_hint(token.source_line, PreprocessorHints.OBFUSCATE_STRINGS_SEED):
+			_symbol_table.set_custom_seed(tokenizer.get_source_hint_args(token.source_line, PreprocessorHints.OBFUSCATE_STRINGS_SEED).to_int())
 		else:
 			_symbol_table.set_custom_seed(0)
 	
-		if _str_processing or line.has_hint(PreprocessorHints.OBFUSCATE_STRINGS):
+		if _str_processing or tokenizer.has_source_hint(token.source_line, PreprocessorHints.OBFUSCATE_STRINGS):
 			_string_obfuscation(token)
 			
 		else:
