@@ -468,6 +468,7 @@ func _parse_for(parent : AST.ASTNode) -> AST.For:
 	
 	var indentation : int = _current_indentation
 	var symbol_token : Token = _tokenizer.get_next()
+	var lock_symbol : bool = _blocked or _line_has_hint(PreprocessorHints.LOCK_SYMBOLS)
 	
 	var iterator := AST.Iterator.new(ast)
 	iterator.symbol = _symbol_table.create_symbol(ast, symbol_token.get_value(), _parse_var_type(ast))
@@ -477,7 +478,7 @@ func _parse_for(parent : AST.ASTNode) -> AST.For:
 	ast.body = _parse_block(ast, indentation)
 	
 	symbol_token.link_symbol(iterator.symbol)
-	if _blocked or _line_has_hint(PreprocessorHints.LOCK_SYMBOLS):
+	if lock_symbol:
 		_symbol_table.lock_symbol(iterator.symbol)
 	
 	return ast
@@ -657,13 +658,16 @@ func _parse_const(parent : AST.ASTNode) -> AST.Const:
 		_Logger.write("ERROR: Parser._parse_const() - Symbol expected!")
 		return null
 	
+	# Before the value is read, which may end on another line
+	var lock_symbol : bool = _blocked or _line_has_hint(PreprocessorHints.LOCK_SYMBOLS)
+	
 	var ast := AST.Const.new(parent)
 	ast.symbol = _symbol_table.create_symbol(ast, token.get_value(), _parse_var_type(ast))
 	ast.default = _parse_var_default(ast)
 	ast.getset = _parse_var_getset(ast)
 	
 	token.link_symbol(ast.symbol)
-	if _blocked or _line_has_hint(PreprocessorHints.LOCK_SYMBOLS):
+	if lock_symbol:
 		_symbol_table.lock_symbol(ast.symbol)
 	
 	if _class_symbol and _is_class_level(parent):
