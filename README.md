@@ -235,7 +235,7 @@ var __rEyW : int
 __U5iZ("__rEyW", 3)
 ```
 
-`##OBFUSCATE_STRING_SEED arg_number`: 
+`##OBFUSCATE_STRINGS_SEED arg_number`: 
 
 ```js
 // In the next example we use OBFUSCATE_STRINGS_SEED preprocessor combined with OBFUSCATE_STRINGS
