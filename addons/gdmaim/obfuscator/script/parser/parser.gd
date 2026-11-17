@@ -505,6 +505,7 @@ func _parse_class_name(parent : AST.ASTNode) -> void:
 	while ast.get_parent() and not ast is AST.Class:
 		ast = ast.get_parent()
 	
+	_symbol_table.add_class_name(token.get_value())
 	_class_symbol = _symbol_table.create_global_symbol(token.get_value())
 	ast.symbol = _class_symbol
 	
@@ -543,6 +544,7 @@ func _parse_class(parent : AST.ASTNode) -> AST.Class:
 		_tokenizer.get_next()
 		ast.ext = _parse_symbol_path(ast)
 	
+	_symbol_table.add_class_name(name)
 	ast.symbol = _symbol_table.create_global_symbol(name)
 	ast.body = _parse_block(ast, indentation)
 	

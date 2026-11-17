@@ -104,7 +104,7 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 	add_entry("strip_empty_lines", "strip_empty_lines", "Strip Empty Lines", "If true, remove all empty lines.")
 	add_entry("strip_extraneous_spacing", "strip_extraneous_spacing", "Strip Extraneous Spacing", "If true, remove all irrelevant spaces and tabs.")
 	add_entry("strip_editor_annotations", "strip_editor_annotations", "Strip Editor Annotations", "If true, remove all annotations used by the editor.")
-	add_entry("strip_static_typing", "strip_static_typing", "Strip Static Typing", "If true, remove all static typing like [int, String, Objects, CustomObjects, ...] take in mind this can remove the performance benefit with the static typing practice.")
+	add_entry("strip_static_typing", "strip_static_typing", "Strip Static Typing", "If true, remove all static typing like [int, String, Objects, CustomObjects, ...] take in mind this can remove the performance benefit with the static typing practice.\nExported variables keep their type, as do variables without a value whose type might be an enum.")
 	add_entry("strip_sequential_newlines", "strip_sequential_newlines", "Strip Sequential New Lines","Strip New Lines Whenever Possible On Sequential Syntax")
 	add_entry("striped_static_typing_be_initialized", "striped_static_typing_be_initialized", "Initialize stripped typed variables", "(This action is complement of: Strip Static Typing)\nIf true, uninitalized typed variables that typed have been removed will be initialized; this will be useful for developers who frequently perform operations with these uninitialized typed variables, avoiding type definition errors.")
 	

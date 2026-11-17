@@ -38,6 +38,9 @@ func run(features : PackedStringArray) -> bool:
 		_Logger.write("ERROR: ScriptObfuscator.run() - No parsed data!")
 		return false
 	
+	if tokenizer.is_static_typing_stripped():
+		_strip_static_typing()
+	
 	tokenizer.reset()
 	
 	var _str_processing : bool = false
@@ -124,6 +127,184 @@ func generate_line_mappings() -> Array[Dictionary]:
 
 func get_class_symbol() -> SymbolTable.Symbol:
 	return parser.get_class_symbol() if parser else null
+
+
+# Removes type hints. This is done to the parsed script, so that
+# the types are still there to tell what a symbol belongs to.
+func _strip_static_typing() -> void:
+	const TRIVIA : int = Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.INDENTATION | Token.Type.STATEMENT_BREAK
+
+	var tokens : Array[Token]
+	for token in tokenizer.get_tokens():
+		if !(token.type & TRIVIA):
+			tokens.append(token)
+
+	var removed : Dictionary # Tokens to take out
+	var defaults : Dictionary # Value to give a variable, by the token of its name
+	var exported : bool = false
+	var i : int = 0
+	while i < tokens.size():
+		var token : Token = tokens[i]
+		if token.is_annotation():
+			if token.get_value().begins_with("@export") and !Builtins.ATTRIBUTES.has(token.get_value()):
+				exported = true
+		elif token.is_keyword("var") or token.is_keyword("const"):
+			# An exported variable needs its type, and a binding in a match pattern has none
+			if !exported and i + 1 < tokens.size() and !parser.is_pattern_binding(tokens[i + 1]):
+				_strip_variable_type(tokens, i + 1, token.is_keyword("var"), removed, defaults)
+			exported = false
+		elif token.is_keyword("func") or token.is_keyword("signal"):
+			exported = false
+			i = _strip_signature_types(tokens, i + 1, removed)
+			continue
+		elif token.is_keyword("for"):
+			# for name : Type in ...
+			if i + 2 < tokens.size() and tokens[i + 2].is_punctuator(":"):
+				var end : int = _find_type_end(tokens, i + 3)
+				if end != -1 and end < tokens.size() and tokens[end].is_keyword("in"):
+					for j in range(i + 2, end):
+						removed[tokens[j]] = true
+		i += 1
+
+	for line in tokenizer.get_output_lines():
+		var kept : Array[Token]
+		for token in line.tokens:
+			if removed.has(token):
+				# Along with the spacing in front of it
+				if kept and kept.back().is_whitespace():
+					kept.pop_back()
+				continue
+			kept.append(token)
+			if defaults.has(token):
+				for added : Token in [Token.new(Token.Type.OPERATOR, "=", -1, token.line), Token.new(Token.Type.LITERAL, defaults[token], -1, token.line)]:
+					added.source_line = token.source_line
+					kept.append(added)
+		line.tokens = kept
+
+
+# Strips the type of the variable or constant whose name is at the given index
+func _strip_variable_type(tokens : Array[Token], name_idx : int, is_var : bool, removed : Dictionary, defaults : Dictionary) -> void:
+	var colon : int = name_idx + 1
+	if colon + 1 >= tokens.size() or !tokens[name_idx].is_symbol() or !tokens[colon].is_punctuator(":"):
+		return
+
+	if tokens[colon + 1].is_operator("="):
+		removed[tokens[colon]] = true # An inferred type, as in "var x := 1"
+		return
+
+	var end : int = _find_type_end(tokens, colon + 1)
+	if end == -1:
+		return # The colon begins the accessors of a property
+
+	var next : Token = tokens[end] if end < tokens.size() else null
+	var has_value : bool = next != null and next.is_operator("=")
+
+	# Accessors on the same line, like "var x: get = get_x"
+	if end == colon + 2 and next and ["get", "set"].has(tokens[colon + 1].get_value()) and (has_value or next.is_punctuator("(")):
+		return
+	if next and !has_value and !next.is_punctuator(":") and !next.is_punctuator(";") and !next.is_line_break():
+		return # No type after all
+
+	if !has_value and is_var and tokenizer.is_stripped_typing_initialized():
+		# Without its type the variable would start out as null, and not as what the type starts out as
+		var type_name : String = tokens[end - 1].get_value() if !tokens[end - 1].is_punctuator("]") else tokens[colon + 1].get_value()
+		var is_simple : bool = end == colon + 2 or tokens[colon + 2].is_punctuator("[")
+		var default : String = _get_default_value(type_name) if is_simple else ""
+		if !default.is_empty():
+			defaults[tokens[name_idx]] = default
+		elif !(is_simple and (type_name == "Variant" or type_name == "Object" or ClassDB.class_exists(type_name))) and !_symbol_table.is_class_name(type_name):
+			return # Might be an enum, which starts out as 0, so this type stays
+
+	for i in range(colon, end):
+		removed[tokens[i]] = true
+
+
+# Strips the types of the parameters and the return type of a function or signal.
+# The index is that of the token after the keyword. Returns the index to go on from.
+func _strip_signature_types(tokens : Array[Token], i : int, removed : Dictionary) -> int:
+	if i < tokens.size() and tokens[i].is_symbol():
+		i += 1 # The name, which a lambda does not have
+	if i >= tokens.size() or !tokens[i].is_punctuator("("):
+		return i
+
+	var depth : int = 0
+	var at_parameter : bool = false
+	while i < tokens.size():
+		var token : Token = tokens[i]
+		if token.is_punctuator():
+			i += 1
+			match token.get_value():
+				"(", "[", "{":
+					depth += 1
+					at_parameter = depth == 1
+				")", "]", "}":
+					depth -= 1
+					if depth == 0:
+						break
+				",":
+					at_parameter = depth == 1
+				_:
+					at_parameter = false
+		elif token.is_line_break():
+			i += 1
+		elif at_parameter and token.is_symbol() and i + 2 < tokens.size() and tokens[i + 1].is_punctuator(":"):
+			at_parameter = false
+			var end : int = _find_type_end(tokens, i + 2)
+			if tokens[i + 2].is_operator("="):
+				end = i + 2 # An inferred type, as in "a := 1"
+			if end == -1:
+				i += 2
+			else:
+				for j in range(i + 1, end):
+					removed[tokens[j]] = true
+				i = end
+		else:
+			at_parameter = false
+			i += 1
+
+	if i < tokens.size() and tokens[i].is_operator("->"):
+		var end : int = _find_type_end(tokens, i + 1)
+		if end != -1:
+			for j in range(i, end):
+				removed[tokens[j]] = true
+			i = end
+
+	return i
+
+
+# Returns the index after the type that begins at the given index, like Array[int] or Tween.EaseType.
+# Returns -1 if there is no type.
+func _find_type_end(tokens : Array[Token], i : int) -> int:
+	if i >= tokens.size() or !tokens[i].is_symbol():
+		return -1
+
+	i += 1
+	while i + 1 < tokens.size() and tokens[i].is_punctuator(".") and tokens[i + 1].is_symbol():
+		i += 2
+
+	if i < tokens.size() and tokens[i].is_punctuator("["):
+		var depth : int = 0
+		while i < tokens.size():
+			if tokens[i].is_punctuator("["):
+				depth += 1
+			elif tokens[i].is_punctuator("]"):
+				depth -= 1
+				if depth == 0:
+					return i + 1
+			elif tokens[i].is_line_break():
+				return -1
+			i += 1
+		return -1
+
+	return i
+
+
+# Returns what a variable of the given built-in type starts out as, or nothing if it is no such type
+func _get_default_value(type_name : String) -> String:
+	for type in range(TYPE_BOOL, TYPE_MAX):
+		if type != TYPE_OBJECT and type_string(type) == type_name:
+			return Tokenizer.get_default_value(type)
+	return ""
 
 
 func _string_obfuscation(token : Token) -> void:

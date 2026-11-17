@@ -19,6 +19,7 @@ var _id_table : Dictionary
 var _unique_ids : Dictionary
 
 var _custom_seed : int = 0
+var _class_names : Dictionary
 var _used_ids : Dictionary
 
 # Words a generated name must not be, on top of the names that are locked
@@ -83,6 +84,15 @@ func create_symbol_path(ast_node : AST.ASTNode) -> SymbolPath:
 	_symbol_paths.append(path)
 	
 	return path
+
+
+# Classes of the project, to tell them from its enums where either may be a type
+func add_class_name(name : String) -> void:
+	_class_names[name] = true
+
+
+func is_class_name(name : String) -> bool:
+	return _class_names.has(name)
 
 
 func find_global_symbol(symbol : String) -> Symbol:

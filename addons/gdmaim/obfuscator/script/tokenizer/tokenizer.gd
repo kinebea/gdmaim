@@ -65,6 +65,14 @@ func has_preprocessor(preprocessor : String) -> bool:
 	return _stream_preprocessor.has(preprocessor)
 
 
+func is_static_typing_stripped() -> bool:
+	return _strip_static_typing
+
+
+func is_stripped_typing_initialized() -> bool:
+	return _strip_static_typing_initialized
+
+
 # Hints apply to the line of source code they are written on, even when that line
 # got merged with its neighbours, like those of an array spread over several lines.
 func has_source_hint(source_line : int, hint : String) -> bool:
@@ -168,126 +176,6 @@ func generate_source_code() -> String:
 	
 	return code
 	
-func _add_default_value(id: String) -> void:
-	var type : int = TYPE_OBJECT
-	
-	for x in TYPE_MAX:
-		if type_string(x) == id:
-			type = x
-			break
-			
-	if type == TYPE_OBJECT:
-		_add_literal("null")
-		return
-	
-	var variant : String = get_default_value(type)
-	
-	if variant.is_empty():
-		variant = '""'
-	
-	for x : String in variant:
-		if _is_punctuator(x):
-			_add_punctuator(x)
-		elif _is_whitespace(x):
-			continue
-		elif _is_keyword(x):
-			_add_keyword(x)
-		elif _is_literal(x):
-			_add_literal(x)
-		else:
-			_add_symbol(x)
-	
-func _is_stripped_typed(char : String) -> bool:
-	if _strip_static_typing and char == ":":
-		const breakers : PackedInt64Array = [Token.Type.WHITESPACE, Token.Type.INDENTATION, Token.Type.STATEMENT_BREAK, Token.Type.LINE_BREAK]
-		const snacks : PackedStringArray = ["func", "var", "const"]
-		for x in range(_tokens.size() - 2, -1, -1):
-			var tkn : Token = _tokens[x]
-			if tkn.type in breakers:
-				continue
-			if tkn.type == Token.Type.KEYWORD and tkn.get_value() in snacks:
-				break
-			elif tkn.type == Token.Type.PUNCTUATOR:
-				if tkn.get_value() == ",":
-					continue
-				elif "([".contains(tkn.get_value()):
-					break
-				elif "{".contains(tkn.get_value()):
-					return false
-			elif tkn.type == Token.Type.OPERATOR and tkn.get_value() == "=":
-				break
-			elif tkn.type == Token.Type.NUMBER_LITERAL:
-				continue
-			elif tkn.type == Token.Type.LITERAL or tkn.type == Token.Type.SYMBOL:
-				continue
-			return false
-			
-		var candy : Stream = _stream.snapshot()
-		
-		char = _stream.peek(2)
-		
-		while _is_whitespace(char):
-			_stream.get_next()
-			char = _stream.peek()
-		
-		if char == "=":
-			_stream.get_next()
-			return true
-		else:
-			while _is_whitespace(char) or char == "\\":
-				_stream.get_next()
-				char = _stream.peek()
-				
-			if !char.is_empty() and !(char in ["\n\"`"]):
-				var id : String = _read_while(_is_valid_identifier)
-				if !id.is_empty():
-					char = _stream.peek()
-					while _is_whitespace(char) or char == "\\":
-						_stream.get_next()
-						char = _stream.peek()
-						
-					if char == "[":
-						char = _stream.get_next()
-						while !char.is_empty() and char != "]":
-							char = _stream.get_next()
-						
-					char = _stream.peek()
-					while char != "\n" and char != "=" and (_is_whitespace(char) or char == "\\"):
-						_stream.get_next()
-						char = _stream.peek()
-						
-					if _strip_static_typing_initialized:
-						if char != "=":
-							_add_operator("=")
-							_add_default_value(id)
-						
-					return true
-					
-		_stream = candy
-	return false
-
-func _post_operator() -> void:
-	if _strip_static_typing:
-		if _tokens.size() > 0 and _tokens[_tokens.size() - 1].get_value() == "->":
-			var tkn : Token = _tokens.pop_back()
-			
-			for x : int in range(_output.size() - 1, -1, -1):
-				var l : Line = _output[x]
-				var y : int = l.tokens.rfind(tkn)
-				if y > -1:
-					l.tokens.remove_at(y)
-					break
-					
-			var char : String = _stream.get_next()
-			
-			while _is_whitespace(char) or char == "\\":
-				char = _stream.get_next()
-				
-			if char == ":":
-				return
-			
-			_read_while(_is_valid_identifier)
-
 func _read_next_token() -> bool:
 	if _stream.is_eof():
 		return false
@@ -347,13 +235,12 @@ func _read_next_token() -> bool:
 	elif _is_operator(char):
 		# Operator
 		_read_operator()
-		_post_operator()
 		
 	elif _is_digit(char):
 		# Number(literal)
 		_read_number()
 	elif _is_punctuator(char):
-		if !_is_stripped_typed(char) and !_is_continue_sequence_line(char, ",([{", "\n"):
+		if !_is_continue_sequence_line(char, ",([{", "\n"):
 			# Punctuator
 			_add_punctuator(_stream.get_next())
 		# An operand follows an opening bracket, a comma or a colon: '%Name' there is a unique node

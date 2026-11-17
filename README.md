@@ -91,10 +91,6 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 `Preprocessor prefix`: The prefix to use for preprocessor hints.
 
-`Strip Static Typing`: Allow remove the typed definition in [vars | functions].
-
-`Initialize Stripped Typed Variables`: Complement of Strip Static Typing Action, this add a initialized value.
-
 ### Post Processing
 
 `Strip Comments`: If enabled, remove all comments.
@@ -104,6 +100,10 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 `Strip Extraneous Spacing`: If enabled, spaces and tabs that are not required, get removed.
 
 `Strip Editor Annotations`: If enabled, annotations used exclusively by the editor will be removed.
+
+`Strip Static Typing`: Removes the types of variables, parameters and return values. Exported variables keep their type, which `@export` relies on.
+
+`Initialize Stripped Typed Variables`: Complement of `Strip Static Typing`. A variable of a built-in type that has no value is given the one its type starts out with, like `var count=0` for `var count : int`. A variable without a value whose type might be an enum keeps its type instead, as it would start out as `null` and not as `0` otherwise.
 
 `Strip Lines Matching RegEx`: If enabled, any lines matching the regular expression will be removed.
 
