@@ -162,16 +162,39 @@ func obfuscate_string_global(str : String) -> String:
 
 
 func _search_symbol(ast_node : AST.ASTNode, name : String, is_func : bool) -> Symbol:
-	var origin : AST.ASTNode = ast_node
+	var from : AST.ASTNode = ast_node # Where the search came from, at first the place of use
 	
 	ast_node = ast_node.get_parent()
 	while ast_node:
-		for child in ast_node.get_children():
-			if child == origin:
+		var children : Array = ast_node.get_children()
+		if from is AST.Sequence and not ast_node is AST.Sequence:
+			# The statements of its block have been searched, which leaves what the node itself declares
+			if ast_node is AST.Func:
+				children = ast_node.params
+			elif ast_node is AST.For:
+				children = [ast_node.iterator]
+			else:
+				children = []
+		
+		# Members of a class can be used ahead of their declaration, unlike anything else
+		var any_order : bool = ast_node is AST.Sequence and ast_node.get_parent() is AST.Class
+		
+		# The last declaration ahead of the place of use counts, as the branches
+		# of a match may each bind the same name
+		var found : Symbol = null
+		for child in children:
+			if child == from:
+				if any_order:
+					continue
 				break
 			elif child is AST.SymbolDeclaration and child.symbol and child.symbol.get_name() == name and (child is AST.Func == is_func):
-				return child.symbol
+				found = child.symbol
+				if any_order:
+					break
+		if found:
+			return found
 		
+		from = ast_node
 		ast_node = ast_node.get_parent()
 	
 	return null
