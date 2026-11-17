@@ -464,6 +464,8 @@ func _read_comment() -> void:
 			if slices:
 				var hint_name : String = slices[0].strip_edges()
 				var args : String = slices[1].strip_edges() if slices.size() == 2 else ""
+				if hint_name == "OBFUSCATE_STRING_SEED":
+					hint_name = PreprocessorHints.OBFUSCATE_STRINGS_SEED # As it used to be spelled in the documentation
 				_output.back().add_hint(hint_name, args)
 	_add_comment(text)
 
