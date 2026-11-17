@@ -249,6 +249,10 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	_godot_files.flush()
 	
 func _export_end() -> void:
+	# The libraries of the addon are of no use to the game, however it got exported
+	if !_export_path.is_empty():
+		Engine.get_main_loop().create_timer(3.0).timeout.connect(_clean_libs.bind(_export_path))
+
 	if !_enabled:
 		return
 	
@@ -324,9 +328,6 @@ func _export_end() -> void:
 	
 	if is_instance_valid(settings):
 		settings.custom_token_regex_buffer.clear()
-
-	if !_export_path.is_empty():
-		Engine.get_main_loop().create_timer(3.0).timeout.connect(_clean_libs.bind(_export_path))
 
 
 
