@@ -77,7 +77,15 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	
 	if !_enabled:
 		return
-		
+
+	# Godot turns scripts into binary tokens before this plugin gets to see them, which
+	# would leave the original scripts next to renamed scenes, resources and class names
+	if get_export_preset().get_script_export_mode() != EditorExportPreset.MODE_SCRIPT_TEXT:
+		_enabled = false
+		# Shown in the export dialog and printed as an error
+		get_export_platform().add_message(EditorExportPlatform.EXPORT_MESSAGE_ERROR, "GDMaim", 'Nothing has been obfuscated! The export preset has to export scripts as text: set "GDScript Export Mode" to "Text" in the "Scripts" tab of the export preset. To export binary tokens, use the "Export Mode" setting of GDMaim instead.')
+		return
+
 	# Get current addon folder
 	_addon_path = _get_addon_path()
 	
