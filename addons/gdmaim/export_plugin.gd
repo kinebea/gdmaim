@@ -369,22 +369,22 @@ func _export_file(path : String, type : String, features : PackedStringArray) ->
 		skip() #HACK
 		add_file(path, FileAccess.get_file_as_bytes(path), true) #HACK
 	elif ext == "tres" or ext == "tscn":
-		if settings.obfuscate_export_vars or ext == "tscn" or _src_obfuscators.has(str(path,":",0)):
-			var data : String = _obfuscate_resource(path, FileAccess.get_file_as_string(path))
-			
-			skip()
-			
-			if settings.export_mode != settings.ExportMode.TEXT:
-				var bytes : PackedByteArray = _binash.get_bytes_from_text(data, ext, settings.export_mode == settings.ExportMode.COMPRESSED, path)
-				
-				if bytes.size() > 0:
-					add_file(path.trim_suffix(ext) + ext.trim_prefix("t"), bytes, true)
-					return
-					
-				printerr("[GDMaim] convertion error for: ", path)
-			
-			add_file(path, data.to_utf8_buffer(), false)
-			
+		# Always, as even without export vars a resource may refer to renamed methods and properties
+		var data : String = _obfuscate_resource(path, FileAccess.get_file_as_string(path))
+
+		skip()
+
+		if settings.export_mode != settings.ExportMode.TEXT:
+			var bytes : PackedByteArray = _binash.get_bytes_from_text(data, ext, settings.export_mode == settings.ExportMode.COMPRESSED, path)
+
+			if bytes.size() > 0:
+				add_file(path.trim_suffix(ext) + ext.trim_prefix("t"), bytes, true)
+				return
+
+			printerr("[GDMaim] convertion error for: ", path)
+
+		add_file(path, data.to_utf8_buffer(), false)
+
 	elif ext == "res" or ext == "scn":
 		if settings.obfuscate_export_vars or ext == "scn" or _src_obfuscators.has(str(path,":",0)):
 			var data : String = _binash.get_text(path)
