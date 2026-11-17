@@ -131,6 +131,8 @@ func _string_obfuscation(token : Token) -> void:
 		return
 	
 	var str : String = token.get_value(false)
+	if str.is_empty():
+		return
 	
 	var regex : RegEx = RegEx.create_from_string("(%[\\d\\.]*[a-zA-Z]|\\{\\d+\\})", false)
 	if regex.is_valid():
