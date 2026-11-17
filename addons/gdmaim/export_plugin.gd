@@ -557,27 +557,78 @@ func _obfuscate_script(path : String) -> String:
 	
 	# Inject startup code into the first autoload
 	if path == _inject_autoload:
-		var injection_code : String = 'print("GDMaim - Source map \'' + _source_map_filename + '\'\\n");'
-		var did_inject : bool = false
-		
-		var found_func : bool = false
-		for line in obfuscator.tokenizer.get_output_lines():
-			for i in line.tokens.size():
-				var token : Token = line.tokens[i]
-				if token.get_value() == "_enter_tree":
-					found_func = true
-					break
-				if found_func and token.type == Token.Type.INDENTATION:
-					line.insert_token(i + 1, Token.new(Token.Type.LITERAL, injection_code, -1, -1))
-					did_inject = true
-					break
-			if did_inject:
-				break
-		
-		if !did_inject:
-			obfuscator.tokenizer.insert_output_line(obfuscator.tokenizer.get_output_lines().size(), Tokenizer.Line.new([Token.new(Token.Type.LITERAL, 'func _enter_tree() -> void:\n\t' + injection_code, -1, -1)]))
-	
+		_inject_source_map_name(obfuscator)
+
 	return obfuscator.generate_source_code()
+
+
+# Makes the script print the name of the source map as soon as it enters the tree
+func _inject_source_map_name(obfuscator : ScriptObfuscator) -> void:
+	var injection_code : String = 'print("GDMaim - Source map \'' + _source_map_filename + '\'\\n");'
+	var lines : Array[Tokenizer.Line] = obfuscator.tokenizer.get_output_lines()
+
+	for l in lines.size():
+		if lines[l].get_indentation() != 0:
+			continue
+
+		# func _enter_tree of the script itself, and not that of an inner class
+		var name_at : int = -1
+		for i in lines[l].tokens.size():
+			if lines[l].tokens[i].is_keyword("func"):
+				var j : int = i + 1
+				while j < lines[l].tokens.size() and lines[l].tokens[j].is_whitespace():
+					j += 1
+				if j < lines[l].tokens.size() and lines[l].tokens[j].get_value() == "_enter_tree":
+					name_at = j
+				break
+		if name_at == -1:
+			continue
+
+		# The colon that begins its body
+		var depth : int = 0
+		var colon_line : int = l
+		var colon_at : int = name_at + 1
+		var found : bool = false
+		while colon_line < lines.size():
+			var tokens : Array[Token] = lines[colon_line].tokens
+			while colon_at < tokens.size():
+				if tokens[colon_at].is_punctuator("("):
+					depth += 1
+				elif tokens[colon_at].is_punctuator(")"):
+					depth -= 1
+				elif tokens[colon_at].is_punctuator(":") and depth == 0:
+					found = true
+					break
+				colon_at += 1
+			if found:
+				break
+			colon_line += 1
+			colon_at = 0
+		if !found:
+			break
+
+		# A body on the same line goes on behind the injected code, one below is put behind its indentation
+		for i in range(colon_at + 1, lines[colon_line].tokens.size()):
+			var token : Token = lines[colon_line].tokens[i]
+			if !token.is_whitespace() and !token.is_comment() and !token.is_line_break():
+				lines[colon_line].insert_token(colon_at + 1, Token.new(Token.Type.LITERAL, injection_code, -1, -1))
+				return
+		for body_line in range(colon_line + 1, lines.size()):
+			if lines[body_line].has_statement():
+				lines[body_line].insert_token(1 if lines[body_line].get_indentation() > 0 else 0, Token.new(Token.Type.LITERAL, injection_code, -1, -1))
+				return
+		break
+
+	# The script has none, so it gets one. That of a script it extends still has to run.
+	var code : String = 'func _enter_tree() -> void:\n\t' + injection_code
+	var script : Script = load(obfuscator.path) as Script
+	var base : Script = script.get_base_script() if script else null
+	if base:
+		for method in base.get_script_method_list():
+			if method.name == "_enter_tree":
+				code += "super()"
+				break
+	obfuscator.tokenizer.insert_output_line(lines.size(), Tokenizer.Line.new([Token.new(Token.Type.LITERAL, code, -1, -1)]))
 
 
 func _obfuscate_resource(path : String, source_data : String) -> String:
