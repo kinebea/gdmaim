@@ -126,7 +126,7 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 							line = tokens[0] + " = " + tokens[1]
 						elif tokens[1].begins_with("NodePath(") and tokens[1].contains(":") and (!is_track_path or track_type == "value" or track_type == "bezier"):
 							var node_path : String = _read_string(tokens[1])
-							var properties : PackedStringArray = node_path.split(":", false)
+							var properties : PackedStringArray = node_path.split(":")
 							var new_path : String = properties[0]
 							for property in properties.slice(1):
 								var new_symbol : SymbolTable.Symbol = symbol_table.find_global_symbol(property)
