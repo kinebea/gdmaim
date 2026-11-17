@@ -949,7 +949,7 @@ func _is_statement(token : Token) -> bool:
 	return token and token.type != Token.Type.COMMENT and token.type != Token.Type.WHITESPACE and token.type != Token.Type.INDENTATION and token.type != Token.Type.LINE_BREAK 
 
 func _parse_comment(token : Token) -> void:
-	var value : String = token.get_value().trim_prefix(_Settings.current.preprocessor_prefix)
+	var value : String = token.get_value().strip_edges().trim_prefix(_Settings.current.preprocessor_prefix).get_slice(" ", 0)
 	match value:
 		PreprocessorHints.START_LOCK_SYMBOLS:
 			_blocked = true

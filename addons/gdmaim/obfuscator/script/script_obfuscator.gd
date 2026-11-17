@@ -48,7 +48,7 @@ func run(features : PackedStringArray) -> bool:
 		var prev_line : Tokenizer.Line = tokenizer.get_output_line(token.line-1)
 		
 		if token.type == Token.Type.COMMENT:
-			var value : String = token.get_value().trim_prefix(_Settings.current.preprocessor_prefix)
+			var value : String = token.get_value().strip_edges().trim_prefix(_Settings.current.preprocessor_prefix).get_slice(" ", 0)
 			match value:
 				PreprocessorHints.START_OBFUSCATE_STRINGS:
 					_str_processing = true
