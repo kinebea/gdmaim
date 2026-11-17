@@ -78,6 +78,11 @@ func _find_dictionary_keys() -> void:
 		prev = token
 
 
+# Whether a declaration with this parent is a member of a class, and not local to a function
+func _is_class_level(parent : AST.ASTNode) -> bool:
+	return parent is AST.Sequence and parent.get_parent() is AST.Class
+
+
 func _is_dictionary_key(token : Token) -> bool:
 	return token != null and _dictionary_keys.has(token.idx)
 
@@ -558,7 +563,7 @@ func _parse_signal(parent : AST.ASTNode) -> AST.SignalDef:
 	if _blocked or _line_has_hint(PreprocessorHints.LOCK_SYMBOLS):
 		_symbol_table.lock_symbol(ast.symbol)
 	
-	if _class_symbol and _is_autoload:
+	if _class_symbol and _is_autoload and _is_class_level(parent):
 		_class_symbol.add_child(ast.symbol)
 	
 	return ast
@@ -605,7 +610,7 @@ func _parse_enum(parent : AST.ASTNode) -> AST.EnumDef:
 			continue
 		_tokenizer.get_next()
 	
-	if _class_symbol and ast:
+	if _class_symbol and ast and _is_class_level(parent):
 		_class_symbol.add_child(ast.symbol)
 	
 	return ast
@@ -655,7 +660,7 @@ func _parse_const(parent : AST.ASTNode) -> AST.Const:
 	if _blocked or _line_has_hint(PreprocessorHints.LOCK_SYMBOLS):
 		_symbol_table.lock_symbol(ast.symbol)
 	
-	if _class_symbol:
+	if _class_symbol and _is_class_level(parent):
 		_class_symbol.add_child(ast.symbol)
 	
 	return ast
@@ -679,7 +684,7 @@ func _parse_var(parent : AST.ASTNode) -> AST.Var:
 	ast.default = _parse_var_default(ast)
 	ast.getset = _parse_var_getset(ast)
 	
-	if _class_symbol and (_is_autoload or is_static):
+	if _class_symbol and (_is_autoload or is_static) and _is_class_level(parent):
 		_class_symbol.add_child(ast.symbol)
 	
 	return ast
@@ -803,7 +808,7 @@ func _parse_func(parent : AST.ASTNode) -> AST.Func:
 			if string_params.has(params[i].symbol.get_name()):
 				ast.symbol.add_string_param(i)
 	
-	if _class_symbol and (_is_autoload or is_static):
+	if _class_symbol and (_is_autoload or is_static) and _is_class_level(parent):
 		_class_symbol.add_child(ast.symbol)
 	
 	_bracket_lock += bracket_lock
