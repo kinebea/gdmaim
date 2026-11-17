@@ -121,7 +121,10 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 							track_type = _read_string(tokens[1])
 						var is_track_path : bool = tokens[0].begins_with("tracks/") and tokens[0].ends_with("/path")
 
-						if tokens[1].begins_with("NodePath(") and tokens[1].contains(":") and (!is_track_path or track_type == "value" or track_type == "bezier"):
+						if tokens[0] == "advance_expression":
+							tokens[1] = _rename_expression(tokens[1], symbol_table)
+							line = tokens[0] + " = " + tokens[1]
+						elif tokens[1].begins_with("NodePath(") and tokens[1].contains(":") and (!is_track_path or track_type == "value" or track_type == "bezier"):
 							var node_path : String = _read_string(tokens[1])
 							var properties : PackedStringArray = node_path.split(":", false)
 							var new_path : String = properties[0]
@@ -178,6 +181,40 @@ func _find_string_lines(lines : PackedStringArray) -> PackedByteArray:
 			elif char == '"':
 				open = !open
 			c += 1
+
+	return result
+
+# Renames the properties and methods used in an expression, which is given the way it is stored: quoted and escaped
+func _rename_expression(value : String, symbol_table : SymbolTable) -> String:
+	var result : String
+	var id : String
+	var quote : String # Of the string within the expression that is being read, if any
+	var i : int = 0
+	while i <= value.length():
+		var char : String = value[i] if i < value.length() else ""
+		var is_digit : bool = !char.is_empty() and char >= "0" and char <= "9"
+		if !char.is_empty() and quote.is_empty() and (char == "_" or (char >= "a" and char <= "z") or (char >= "A" and char <= "Z") or (is_digit and !id.is_empty())):
+			id += char
+			i += 1
+			continue
+
+		if !id.is_empty():
+			var symbol : SymbolTable.Symbol = symbol_table.find_global_symbol(id)
+			result += str(symbol.name) if symbol else id
+			id = ""
+
+		if char == "\\" and i + 1 < value.length():
+			# An escaped quote begins or ends a string
+			if value[i + 1] == '"' and (quote.is_empty() or quote == '"'):
+				quote = "" if quote else '"'
+			result += char + value[i + 1]
+			i += 2
+			continue
+		elif char == "'" and (quote.is_empty() or quote == "'"):
+			quote = "" if quote else "'"
+
+		result += char
+		i += 1
 
 	return result
 
