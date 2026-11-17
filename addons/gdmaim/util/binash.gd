@@ -148,10 +148,13 @@ func get_bytes(path_file : String, compressed, origin : String = "") -> PackedBy
 		var flag : int = ResourceSaver.FLAG_NONE
 		
 		var xfout : String = TEMP_FILE + _id  + "res"
-		
+
+		# The saved file records the path of its resource. It is given the original one without
+		# going through the cache, where it would take the place of the resource the editor
+		# has loaded from that path and leave that one without a path.
 		if resort and !origin.is_empty():
-			resort.take_over_path(origin)
-		
+			resort.set_path_cache(origin)
+
 		if path_file.ends_with(".tscn"):
 			xfout = TEMP_FILE + _id  + "scn"
 			
