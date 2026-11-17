@@ -590,12 +590,19 @@ func _parse_enum(parent : AST.ASTNode) -> AST.EnumDef:
 				expect_key = false
 				continue
 			else:
-				parent.statements.append(_parse_symbol(parent))
+				# Part of a value, like the RED in DEFAULT = RED. The token after it is yet to be looked at.
+				var value : AST.Symbol = _parse_symbol(parent)
+				if value:
+					parent.statements.append(value)
+				continue
 		elif token.is_punctuator(","):
 			expect_key = true
 		elif token.is_punctuator("}"):
 			_tokenizer.get_next()
 			break
+		elif token.is_comment():
+			_parse_comment(token)
+			continue
 		_tokenizer.get_next()
 	
 	if _class_symbol and ast:
