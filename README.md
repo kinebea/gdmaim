@@ -76,7 +76,7 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 ### Obfuscation
 
-`Enable Obfuscation`: If enabled, obfuscate scripts. Does _not_ affect post-processing.
+`Enable Obfuscation`: If enabled, obfuscate scripts. Does _not_ affect post-processing: with this turned off, names are kept, while comments, feature filters, the export mode and everything else under Post Processing still apply. To export without GDMaim altogether, add the feature tag `no_gdmaim` to the export preset.
 
 `Obfuscate Exports Vars`: If enabled, obfuscate export vars.
 > Note: Requires all resources which modify export vars to be saved as '.tres' files.

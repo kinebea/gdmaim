@@ -172,7 +172,7 @@ func is_custom_lock_settings(str : String) -> bool:
 	return false
 
 func obfuscate_string_global(str : String) -> String:
-	return _generate_symbol_name(str) if !_locked_symbols.has(str) and !is_custom_lock_settings(str) else str
+	return _generate_symbol_name(str) if settings.obfuscation_enabled and !_locked_symbols.has(str) and !is_custom_lock_settings(str) else str
 
 
 func _search_symbol(ast_node : AST.ASTNode, name : String, is_func : bool) -> Symbol:
