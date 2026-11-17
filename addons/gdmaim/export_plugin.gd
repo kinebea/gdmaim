@@ -91,6 +91,7 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	# Get current addon folder
 	_addon_path = _get_addon_path()
 	
+	_validate_settings()
 	_convert_text_resources_to_binary = ProjectSettings.get_setting("editor/export/convert_text_resources_to_binary", false)
 	if _convert_text_resources_to_binary:
 		#push_warning("GDMaim: The project setting 'editor/export/convert_text_resources_to_binary' being enabled might significantly affect the time it takes to export")
@@ -686,6 +687,16 @@ func _obfuscate_resource(path : String, source_data : String) -> String:
 		obfuscator.set_data(result + data.substr(from))
 
 	return obfuscator.get_data()
+
+
+# Corrects settings the export cannot work with
+func _validate_settings() -> void:
+	if settings.preprocessor_prefix.strip_edges().is_empty():
+		push_warning("GDMaim - The preprocessor prefix is empty, '%s' is used instead." % _Settings.DEFAULT_PREPROCESSOR_PREFIX)
+		settings.preprocessor_prefix = _Settings.DEFAULT_PREPROCESSOR_PREFIX
+	if settings.symbol_characters.is_empty():
+		push_warning("GDMaim - The character list of the name generator is empty, the default one is used instead.")
+		settings.symbol_characters = _Settings.DEFAULT_SYMBOL_CHARACTERS
 
 
 static func _multi_split(source : String, delimeters : String) -> PackedStringArray:

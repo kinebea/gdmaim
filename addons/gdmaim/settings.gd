@@ -10,6 +10,9 @@ enum ExportMode {
 	COMPRESSED,
 }
 
+const DEFAULT_SYMBOL_CHARACTERS : String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+const DEFAULT_PREPROCESSOR_PREFIX : String = "##"
+
 var obfuscation_enabled : bool = true
 var shuffle_top_level : bool = true
 var inline_constants : bool = true
@@ -18,7 +21,7 @@ var obfuscate_export_vars : bool = true
 var obfuscate_signals : bool = true
 var symbol_target_length : int = 30
 var symbol_prefix : String = "__"
-var symbol_characters : String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+var symbol_characters : String = DEFAULT_SYMBOL_CHARACTERS
 var symbol_seed : int = 0
 var symbol_dynamic_seed : bool = false
 var strip_comments : bool = true
@@ -31,7 +34,7 @@ var striped_static_typing_be_initialized : bool = true
 var feature_filters : bool = true
 var regex_filter_enabled : bool = true
 var regex_filter : String = ""
-var preprocessor_prefix : String = "##"
+var preprocessor_prefix : String = DEFAULT_PREPROCESSOR_PREFIX
 var source_map_path : String = get_script().resource_path.get_base_dir() + "/source_maps"
 var source_map_max_files : int = 10
 var source_map_compress : bool = true
