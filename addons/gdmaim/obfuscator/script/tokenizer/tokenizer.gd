@@ -461,12 +461,18 @@ func _read_multi_string() -> void:
 	var str : String = ""
 	var mf : bool = false
 	var comment : bool = true
-	
+
+	# Only a string that starts its own line can be a comment
+	for tkn : Token in _output.back().tokens:
+		if !tkn.is_indentation() and !tkn.is_whitespace():
+			comment = false
+			break
+
 	for x : int in range(_tokens.size() - 1, -1, -1):
 		var tkn : Token = _tokens[x]
 		if tkn.is_indentation() or tkn.is_line_break():
 			continue
-		elif tkn.is_operator() or tkn.is_symbol("var"):
+		elif tkn.is_operator() or tkn.is_keyword():
 			comment = false
 		elif tkn.is_punctuator():
 			for z : String in "([{,.:":
