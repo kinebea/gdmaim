@@ -35,6 +35,7 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 	var in_string : PackedByteArray = _find_string_lines(lines)
 	var out : PackedStringArray
 	var resource_type : String # Of the [resource] section, as given by the header of a .tres
+	var track_type : String # Of the animation track being read
 	var i : int = 0
 	while i < lines.size():
 		var line : String = lines[i]
@@ -88,6 +89,7 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 			for type : String in PATH_RESOURCES:
 				if line.contains('type="' + type + '"') or (resource_type == type and line.begins_with("[resource")):
 					has_script = true
+			track_type = ""
 			var j : int = i
 			while j < lines.size():
 				if in_string[j]:
@@ -114,7 +116,12 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 					if in_string[i]:
 						pass # The text of a string, whatever it looks like
 					elif tokens.size() == 2:
-						if tokens[1].begins_with("NodePath(") and tokens[1].contains(":"):
+						# Only the tracks for properties name those of a script. Others name bones, blend shapes, etc.
+						if tokens[0].begins_with("tracks/") and tokens[0].ends_with("/type"):
+							track_type = _read_string(tokens[1])
+						var is_track_path : bool = tokens[0].begins_with("tracks/") and tokens[0].ends_with("/path")
+
+						if tokens[1].begins_with("NodePath(") and tokens[1].contains(":") and (!is_track_path or track_type == "value" or track_type == "bezier"):
 							var node_path : String = _read_string(tokens[1])
 							var properties : PackedStringArray = node_path.split(":", false)
 							var new_path : String = properties[0]
