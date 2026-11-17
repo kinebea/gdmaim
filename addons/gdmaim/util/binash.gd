@@ -103,7 +103,7 @@ func get_text(path_file : String) -> String:
 			xout = FileAccess.get_file_as_string(xfout)
 			
 	ResourceLoader.remove_resource_format_loader(formo)
-	set_engine_abort_on_missing_resources(true)
+	set_engine_abort_on_missing_resources(!Engine.is_editor_hint())
 	formo.reset()
 	
 	if !debug:
@@ -167,7 +167,7 @@ func get_bytes(path_file : String, compressed, origin : String = "") -> PackedBy
 			shtout = FileAccess.get_file_as_bytes(xfout)
 		
 		ResourceLoader.remove_resource_format_loader(formo)
-		set_engine_abort_on_missing_resources(true)
+		set_engine_abort_on_missing_resources(!Engine.is_editor_hint())
 		formo.reset()
 		
 		if !debug:
