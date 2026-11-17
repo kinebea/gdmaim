@@ -19,6 +19,10 @@ var _id_table : Dictionary
 var _unique_ids : Dictionary
 
 var _custom_seed : int = 0
+var _used_ids : Dictionary
+
+# Words a generated name must not be, on top of the names that are locked
+const RESERVED : PackedStringArray = ["if", "elif", "else", "for", "while", "match", "when", "break", "continue", "pass", "return", "class", "class_name", "extends", "is", "in", "as", "self", "super", "signal", "func", "static", "const", "enum", "var", "breakpoint", "preload", "await", "yield", "assert", "void", "and", "or", "not", "namespace", "trait", "true", "false", "null", "PI", "TAU", "INF", "NAN"]
 
 
 func _init(settings : _Settings) -> void:
@@ -215,16 +219,17 @@ func _generate_symbol_name(source_name : String, unique : bool = false) -> Strin
 		var _id : String = settings.symbol_prefix
 		for j in target_length:
 			_id += settings.symbol_characters[random.randi() % settings.symbol_characters.length()]
-		id = _id
+		id = _to_identifier(_id)
 		
 	else:
 		random.seed = hash(source_name) + source_name.length() + _seed
 	
-		while !id or _id_list.has(id):
+		while !id or _is_taken(id):
 			var _id : String = settings.symbol_prefix
 			for j in target_length:
 				_id += settings.symbol_characters[random.randi() % settings.symbol_characters.length()]
-			if !id and unique and _id_list.has(_id):
+			_id = _to_identifier(_id)
+			if !id and unique and _used_ids.has(_id):
 				_unique_ids[source_name] = _unique_ids.get(source_name, 0) + 1
 				random.seed += _unique_ids[source_name]
 			else:
@@ -232,10 +237,21 @@ func _generate_symbol_name(source_name : String, unique : bool = false) -> Strin
 			id = _id
 		
 		_id_list.append(id)
+		_used_ids[id] = true
 		if !unique:
 			_id_table[source_name] = id
 		
 	return id
+
+
+# Whether a generated name cannot be used
+func _is_taken(id : String) -> bool:
+	return _used_ids.has(id) or _locked_symbols.has(id) or RESERVED.has(id)
+
+
+# A name cannot begin with a digit, which it would with a prefix that is empty or begins with one
+func _to_identifier(id : String) -> String:
+	return "_" + id if id.is_empty() or (id[0] >= "0" and id[0] <= "9") else id
 
 
 class Symbol extends RefCounted:
