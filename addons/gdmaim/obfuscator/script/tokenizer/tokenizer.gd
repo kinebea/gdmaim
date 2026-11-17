@@ -10,6 +10,8 @@ const PreprocessorHints = preload("../preprocessor_hints.gd")
 const KEYWORDS : Array[String] = ["extends", "class_name", "setget", "const", "signal", "enum", "static", "var", "func", "class", "pass", "if", "else", "elif", "while", "for", "in", "match", "continue", "break", "return", "assert", "yield", "await", "preload", "load", "as", "and", "or", "not", "when"]
 const LITERALS : Array[String] = ["true", "false", "null", "self", "PI", "TAU", "NAN", "INF"]
 const OPERATORS : String = "+-*^/%=<>!&|~"
+# Operators of more than one character, longest first
+const LONG_OPERATORS : PackedStringArray = ["**=", "<<=", ">>=", "**", "==", "!=", "<=", ">=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<", ">>", "&&", "||", "->"]
 const PUNCTUATORS : String = "()[]{},;:."
 const IDENTIFIER_CHARACTERS : String = "1234567890_"
 
@@ -560,7 +562,21 @@ func _read_annotation() -> void:
 
 
 func _read_operator() -> void:
-	_add_operator(_read_while(_is_operator))
+	# One operator at a time, so that glued ones stay apart, like the = and - in x=-1
+	# or the ! in !%Node, which is followed by a unique node name
+	var operator : String = _stream.peek()
+	for candidate : String in LONG_OPERATORS:
+		var matches : bool = true
+		for i in candidate.length():
+			if _stream.peek(i + 1) != candidate[i]:
+				matches = false
+				break
+		if matches:
+			operator = candidate
+			break
+	for i in operator.length():
+		_stream.get_next()
+	_add_operator(operator)
 	_can_be_nodepath = true
 
 
