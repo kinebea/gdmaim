@@ -66,11 +66,18 @@ func _ready() -> void:
 	popup.index_pressed.connect(_on_search_option_selected)
 
 
+var _focus_state : int = -1
+
+
 func _process(delta: float) -> void:
 	if !_as_plugin:
 		return
 	
-	self["theme_override_styles/embedded_border"] = border if has_focus() else border_unfocused
+	# Only when it changes, as setting it tells every control in the window that the theme changed
+	var focus_state : int = int(has_focus())
+	if focus_state != _focus_state:
+		_focus_state = focus_state
+		self["theme_override_styles/embedded_border"] = border if focus_state else border_unfocused
 
 
 func _input(event : InputEvent) -> void:
