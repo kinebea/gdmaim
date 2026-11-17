@@ -581,7 +581,25 @@ func _read_operator() -> void:
 
 
 func _read_number() -> void:
-	_add_number_literal(_read_while(_is_literal_digit))
+	var number : String = _stream.get_next()
+	var next : String = _stream.peek()
+
+	if number == "0" and !next.is_empty() and "xXbB".contains(next):
+		# Hexadecimal or binary
+		number += _stream.get_next() + _read_while(_is_hex_digit)
+	else:
+		number += _read_while(_is_decimal_digit)
+		# Fraction, unless the dot begins a member access like 1.abs()
+		next = _stream.peek(2)
+		if _stream.peek() == "." and (next.is_empty() or !_is_valid_identifier(next) or _is_digit(next) or _is_exponent(2)):
+			number += _stream.get_next() + _read_while(_is_decimal_digit)
+		if _is_exponent(1):
+			number += _stream.get_next()
+			if "+-".contains(_stream.peek()):
+				number += _stream.get_next()
+			number += _read_while(_is_decimal_digit)
+
+	_add_number_literal(number)
 	_can_be_nodepath = false
 
 
@@ -646,8 +664,21 @@ func _is_continue_line() -> bool:
 func _is_digit(char : String) -> bool:
 	return "0123456789".contains(char)
 	
-func _is_literal_digit(char : String) -> bool:
-	return ".0123456789_-exabcdef".containsn(char)
+func _is_decimal_digit(char : String) -> bool:
+	return "0123456789_".contains(char)
+
+func _is_hex_digit(char : String) -> bool:
+	return "0123456789_abcdef".containsn(char)
+
+# Whether the character at the stream offset starts an exponent, such as e5 or e-5.
+func _is_exponent(offset : int) -> bool:
+	var char : String = _stream.peek(offset)
+	if char.is_empty() or !"eE".contains(char):
+		return false
+	var next : String = _stream.peek(offset + 1)
+	if !next.is_empty() and "+-".contains(next):
+		next = _stream.peek(offset + 2)
+	return !next.is_empty() and _is_digit(next)
 
 func _is_valid_identifier(char : String) -> bool:
 	return TextServerManager.get_primary_interface().is_valid_letter(char.unicode_at(0)) or IDENTIFIER_CHARACTERS.contains(char)
