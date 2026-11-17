@@ -144,7 +144,9 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 						var method : String = _read_string(line.trim_prefix('"method":'))
 						var new_symbol : SymbolTable.Symbol = symbol_table.find_global_symbol(method)
 						if new_symbol:
-							line = '"method": &"' + str(new_symbol.name) + '"'
+							# Only the name is replaced, the line stays as it is otherwise
+							var name_at : int = line.find('"' + method + '"', 8)
+							line = line.substr(0, name_at + 1) + str(new_symbol.name) + line.substr(name_at + 1 + method.length())
 							_Logger.write(str(i+1) + " found method '" + method + "' = " + str(new_symbol.name))
 
 					out.append(line)
