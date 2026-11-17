@@ -31,11 +31,12 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 		return true
 	
 	var lines : PackedStringArray = source_data.split("\n")
+	var in_string : PackedByteArray = _find_string_lines(lines)
 	var out : PackedStringArray
 	var i : int = 0
 	while i < lines.size():
 		var line : String = lines[i]
-		if line.begins_with("\""):
+		if in_string[i]:
 			out.append(line)
 			i += 1
 			continue
@@ -82,6 +83,9 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 			var has_script : bool = line.contains("instance=") or line.contains('type="Animation"') or (line.begins_with("[node") and !line.contains("type="))
 			var j : int = i
 			while j < lines.size():
+				if in_string[j]:
+					j += 1
+					continue
 				if lines[j].begins_with("["):
 					break
 
@@ -100,7 +104,9 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 				while i < j:
 					line = lines[i]
 					var tokens : PackedStringArray = line.split(" = ", false, 1)
-					if tokens.size() == 2:
+					if in_string[i]:
+						pass # The text of a string, whatever it looks like
+					elif tokens.size() == 2:
 						if tokens[1].begins_with("NodePath(") and tokens[1].contains(":"):
 							var node_path : String = _read_string(tokens[1])
 							var properties : PackedStringArray = node_path.split(":", false)
@@ -130,6 +136,37 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 	_data = "\n".join(out).strip_edges(false, true) + "\n"
 
 	return true
+
+
+# Returns for every line whether it begins inside a string. A string value may span
+# several lines, which then hold text and not sections or properties.
+func _find_string_lines(lines : PackedStringArray) -> PackedByteArray:
+	var result : PackedByteArray
+	result.resize(lines.size())
+
+	var open : bool = false
+	for i in lines.size():
+		result[i] = 1 if open else 0
+
+		var line : String = lines[i]
+		if !line.contains('"'):
+			continue
+		elif !line.contains("\\"):
+			if line.count('"') % 2 == 1:
+				open = !open
+			continue
+
+		var c : int = 0
+		while c < line.length():
+			var char : String = line[c]
+			if char == "\\" and open:
+				c += 1 # An escaped character, such as \"
+			elif char == '"':
+				open = !open
+			c += 1
+
+	return result
+
 
 func get_source_data() -> String:
 	return _source_data
