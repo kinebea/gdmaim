@@ -55,6 +55,9 @@ var _exclude_files : String = "":
 			_str = _str.strip_edges()
 			if _str.is_empty():
 				continue
+			# Paths are those of the project
+			if !_str.contains("://"):
+				_str = "res://" + _str.trim_prefix("/")
 			exclude_files.append(_str)
 var exclude_resources : bool = false
 
@@ -127,7 +130,7 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 	add_entry("source_map_inject_name", "inject_name", "Inject Name", "If true, upon export, injects a print statement of the associated source map's filename into the first enabled autoload. This does not affect your source code. Makes selecting the right source map very easy, when a player/user reports an error and shares their logfile.")
 	
 	set_category("exclude_files_category", "Exclusion")
-	add_entry("_exclude_files", "multi_filepath", "Path", "Select files or folders to be excluded from obfuscation; excluded scripts will maintain compatibility with the other obfuscated scripts.").set_custom_type(Entry.CustomType.MULTI_FILE_PATH, "")
+	add_entry("_exclude_files", "multi_filepath", "Path", "Select files or folders to be excluded from obfuscation; excluded scripts will maintain compatibility with the other obfuscated scripts.\nPaths are separated by ';' and start at res://, like 'res://addons/some_addon;res://scripts/save_data.gd'.").set_custom_type(Entry.CustomType.MULTI_FILE_PATH, "")
 	add_entry("exclude_resources", "resources", "Exclude Resources", "If true, resources like PackedScenes will be ignored during scanning.\nThis is useful if you typically have a lot of embedded resources in your resources and causing problems such as freezing.\n\n(WARNING) This could cause errors if you reference scripts within your packaged scenes, such as signals or exported variables. (Source of embedded scripts are the exception)\n\nRemember that this can be solved by following the best practices recommended in the official repository.")
 	add_entry("use_custom_token_ignore_file", "custom_tokens_enabled", "Custom Tokens File", "If true, any token defined by you in\n'{0}'\nwill be ignored".format([custom_token_ignore_file_path]))
 	add_entry("use_custom_token_as_regex", "custom_tokens_as_regex_enabled", "Custom Tokens as regex", "If true, any token defined by you in\n'{0}'\nwill be read as regex setence.\n\nRequire 'Custom Tokens File' Enabled".format([custom_token_ignore_file_path]))

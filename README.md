@@ -139,8 +139,8 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 ### Exclusion
 
-`Path` : Files/Folders to prevent their obfuscation, the paths must be separated by ";"
-> Example: `path/to/my_file_1;path/to/my_file_2;path/to/my_exclude_folder`
+`Path` : Files/Folders to prevent their obfuscation, the paths must be separated by ";". Paths start at `res://`, which gets added if left out. A file can be given with or without its extension.
+> Example: `res://path/to/my_file_1.gd;res://path/to/my_file_2;res://path/to/my_exclude_folder`
 
 ## Usage [↑](#table-of-contents)
 

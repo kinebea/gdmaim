@@ -756,7 +756,9 @@ func _is_exclude_required(src : String) -> bool:
 
 func _is_exclude_path(path : String) -> bool:
 	for value : String in _Settings.current.exclude_files:
-		if path.begins_with(value):
+		# A file, with or without its extension, or a folder and all that is in it
+		value = value.trim_suffix("/")
+		if path == value or path.get_basename() == value or path.begins_with(value + "/"):
 			return true
 	return false
 

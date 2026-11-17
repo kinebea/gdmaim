@@ -16,7 +16,7 @@ size_flags_horizontal = 3
 tooltip_text = "Paths must be separated by \";\"
 
 Example:
-path/to/my_file_1;path/to/my_file_2;path/to;my_folder"
+res://path/to/my_file_1.gd;res://path/to/my_file_2.gd;res://path/to/my_folder"
 placeholder_text = "Paths separated by ;"
 clear_button_enabled = true
 
