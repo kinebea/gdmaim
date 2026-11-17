@@ -558,8 +558,21 @@ func _shuffle_toplevel() -> void:
 			line_seed += line_seeds[line_seed]
 		random.seed = hash(path) + path.length() + _symbol_table._seed + line_seed
 		w_blocks[block] = random.randi()
+	var source_blocks : Array[Array] = blocks.duplicate()
 	blocks.sort_custom((func(a, b): return w_blocks[a] > w_blocks[b]))
-	
+
+	# Variables are initialized in the order they are declared and may depend on
+	# earlier ones, so they only take each other's places and keep their order
+	var var_slots : PackedInt32Array = []
+	for i in blocks.size():
+		if _is_var_block(blocks[i]):
+			var_slots.append(i)
+	var slot : int = 0
+	for block in source_blocks:
+		if _is_var_block(block):
+			blocks[var_slots[slot]] = block
+			slot += 1
+
 	if on_ready:
 		var idx : int = 0
 		var max_spacing : int = mini(blocks.size() / on_ready.size() * 2, blocks.size() + 1)
@@ -572,6 +585,15 @@ func _shuffle_toplevel() -> void:
 	lines.clear()
 	for block in [top_block] + blocks:
 		lines.append_array(block)
+
+
+# Whether a top-level block declares a variable, as opposed to a function, class, signal, etc.
+func _is_var_block(block : Array) -> bool:
+	for line : Tokenizer.Line in block:
+		for token : Token in line.tokens:
+			if token.is_keyword() and !token.is_keyword("static"):
+				return token.is_keyword("var")
+	return false
 
 
 func _strip_code() -> void:
