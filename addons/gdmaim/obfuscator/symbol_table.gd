@@ -115,7 +115,8 @@ func resolve_symbol_paths() -> void:
 				log += "GLOBAL" if cur else ""
 			if cur:
 				symbol.link(cur)
-				if cur.type == "Dictionary":
+				# The keys of a dictionary are strings and no members, also those of a Dictionary[K, V]
+				if cur.type == "Dictionary" or cur.type.begins_with("Dictionary."):
 					break
 			else:
 				log += "?"
