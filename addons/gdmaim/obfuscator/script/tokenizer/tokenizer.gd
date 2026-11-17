@@ -291,6 +291,8 @@ func _read_next_token() -> bool:
 		if _is_continue_line():
 			_stream.get_next()
 			_read_continue_line()
+			# The lines are joined, but what is on them stays apart
+			_add_whitespace(" ")
 		else:
 			# Statement break
 			_stream.get_next()
