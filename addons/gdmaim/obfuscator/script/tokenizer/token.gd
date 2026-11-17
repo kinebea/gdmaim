@@ -26,6 +26,7 @@ const SymbolTable := preload("../../symbol_table.gd")
 var type : Type
 var idx : int
 var line : int
+var source_line : int = -1 # Line of the source code it is from, if any
 var decorator : String
 var symbol : SymbolTable.Symbol
 
