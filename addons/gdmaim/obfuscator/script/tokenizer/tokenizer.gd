@@ -26,6 +26,7 @@ var _line : int
 var _output : Array[Line]
 var _can_be_nodepath : bool = true
 var _space_indent : int = 4
+var _source_line : int # Line of the source code the token being read begins on
 
 ## PreprocessorHints
 var _stream_preprocessor : Dictionary = {}
@@ -277,6 +278,8 @@ func _post_operator() -> void:
 func _read_next_token() -> bool:
 	if _stream.is_eof():
 		return false
+	
+	_source_line = _stream.get_line_pos() - 1
 	
 	if _stream.peek() == "\n":
 		if !_read_sequence_break_line():
@@ -740,6 +743,7 @@ func _add_token(type : Token.Type, value : String, readable : bool = true, deco 
 		readable = true
 		
 	token = Token.new(type, value, _tokens.size(), _output.size()-1, deco)
+	token.source_line = _source_line
 
 	_output.back().add_token(token)
 	
