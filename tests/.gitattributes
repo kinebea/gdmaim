@@ -1,0 +1,3 @@
+# Kept as it is: the case is about its CRLF line endings
+project/cases/tokenizer/crlf.gd -text
+*.res binary

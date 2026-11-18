@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[sub_resource type="GDScript" id="GDScript_0og5j"]
+script/source = "extends Node
+
+func ping_zq() -> int:
+	return Boot.boot_counter"
+
+[node name="NoNewline" type="Node" unique_id=1715860899]
+script = SubResource("GDScript_0og5j")

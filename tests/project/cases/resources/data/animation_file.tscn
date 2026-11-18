@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://cases/resources/data/actor.gd" id="1_a04ao"]
+[ext_resource type="Animation" path="res://cases/resources/data/attack.tres" id="2_7osot"]
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_hjd7h"]
+_data = {
+&"attack": ExtResource("2_7osot")
+}
+
+[node name="Actor" type="Node" unique_id=33168978]
+script = ExtResource("1_a04ao")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1758047376]
+libraries/ = SubResource("AnimationLibrary_hjd7h")

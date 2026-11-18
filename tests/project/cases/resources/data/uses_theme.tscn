@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="Theme" path="res://cases/resources/data/theme.tres" id="1_p5pwu"]
+
+[node name="UsesTheme" type="Control" unique_id=413968850]
+layout_mode = 3
+anchors_preset = 0
+theme = ExtResource("1_p5pwu")

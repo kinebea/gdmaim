@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://cases/resources/data/multiline_label.gd" id="1_x0rqy"]
+
+[node name="C1Root" type="Node" unique_id=1081206672]
+
+[node name="Dialog" type="RichTextLabel" parent="." unique_id=787431541]
+bbcode_enabled = true
+text = "Welcome!
+[b]Press start[/b]"
+script = ExtResource("1_x0rqy")
+speed_zq = 3.0
+title_zq = "T"

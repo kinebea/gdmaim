@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://cases/resources/data/child.tscn" id="1_wutsp"]
+[ext_resource type="Texture2D" path="res://cases/resources/data/gradient.tres" id="2_h78in"]
+[ext_resource type="Curve" path="res://cases/resources/data/curve.res" id="3_4g1pb"]
+
+[node name="Parent" type="Node2D" unique_id=2074622041]
+
+[node name="Child" type="Node2D" parent="." unique_id=489492540 instance=ExtResource("1_wutsp")]
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1800025655]
+texture = ExtResource("2_h78in")
+
+[node name="Line" type="Line2D" parent="." unique_id=1802128744]
+width_curve = ExtResource("3_4g1pb")

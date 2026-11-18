@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://cases/resources/data/multiline_note.gd" id="1_l5e4k"]
+
+[node name="Note" type="Node" unique_id=1252309015]
+script = ExtResource("1_l5e4k")
+note_zq = "first
+speed_zq = fast
+end"
+after_zq = 9

@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://cases/resources/data/actor.gd" id="1_mlxau"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_fti1h"]
+properties/0/path = NodePath(".:health_zq")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+
+[node name="Actor" type="Node" unique_id=1928253830]
+script = ExtResource("1_mlxau")
+
+[node name="Sync" type="MultiplayerSynchronizer" parent="." unique_id=803306885]
+replication_config = SubResource("SceneReplicationConfig_fti1h")

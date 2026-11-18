@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://cases/resources/data/actor.gd" id="1_8wlys"]
+[ext_resource type="AnimationLibrary" path="res://cases/resources/data/library.tres" id="2_r64u4"]
+
+[node name="Actor" type="Node" unique_id=2023475081]
+script = ExtResource("1_8wlys")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1307787657]
+libraries/ = ExtResource("2_r64u4")

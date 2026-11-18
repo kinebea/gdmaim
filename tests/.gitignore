@@ -1,0 +1,6 @@
+/.work/
+
+# The test project needs the files the root .gitignore keeps out
+!project.godot
+!export_presets.cfg
+!*.csv.import

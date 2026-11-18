@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://cases/resources/data/actor.gd" id="1_b7he1"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_omlcs"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_klalc"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_w4qtw"]
+advance_mode = 2
+advance_expression = "health_zq > 0"
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_udmi8"]
+states/dead/node = SubResource("AnimationNodeAnimation_omlcs")
+states/dead/position = Vector2(0, 0)
+states/idle/node = SubResource("AnimationNodeAnimation_klalc")
+states/idle/position = Vector2(0, 0)
+transitions = ["idle", "dead", SubResource("AnimationNodeStateMachineTransition_w4qtw")]
+
+[node name="Actor" type="Node" unique_id=1831634166]
+script = ExtResource("1_b7he1")
+
+[node name="AnimationTree" type="AnimationTree" parent="." unique_id=724794328]
+tree_root = SubResource("AnimationNodeStateMachine_udmi8")

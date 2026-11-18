@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[sub_resource type="Animation" id="Animation_si62s"]
+tracks/0/type = "position_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Skeleton3D:Weapon")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 1, 2, 3, 1, 1, 1, 2, 3)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_u2ip5"]
+_data = {
+&"swing": SubResource("Animation_si62s")
+}
+
+[node name="Rig" type="Node3D" unique_id=1344019035]
+
+[node name="Skeleton3D" type="Skeleton3D" parent="." unique_id=230221047]
+bones/0/name = "Weapon"
+bones/0/parent = -1
+bones/0/rest = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+bones/0/enabled = true
+bones/0/position = Vector3(0, 0, 0)
+bones/0/rotation = Quaternion(0, 0, 0, 1)
+bones/0/scale = Vector3(1, 1, 1)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1368599939]
+libraries/ = SubResource("AnimationLibrary_u2ip5")

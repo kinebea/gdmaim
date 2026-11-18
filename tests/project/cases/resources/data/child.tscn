@@ -1,0 +1,5 @@
+[gd_scene format=3]
+
+[node name="Child" type="Node2D" unique_id=489492540]
+
+[node name="Inner" type="Node2D" parent="." unique_id=658876408]

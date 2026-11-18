@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://cases/resources/data/dictionary_actor.gd" id="1_wibok"]
+
+[node name="DictActor" type="Node" unique_id=1826602497]
+script = ExtResource("1_wibok")
+action_zq = {
+"method": "attack_zq",
+"target": "enemy"
+}

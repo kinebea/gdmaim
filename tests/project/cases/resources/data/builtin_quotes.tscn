@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[sub_resource type="GDScript" id="GDScript_muys8"]
+script/source = "extends Node
+
+var value_zq : int = 3
+
+func get_text_zq() -> String:
+	var local_v := 4
+	return \"\\\"\" + str(value_zq + local_v) + \"\\\"\"
+"
+
+[node name="Quoted" type="Node" unique_id=927129026]
+script = SubResource("GDScript_muys8")

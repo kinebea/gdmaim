@@ -1,0 +1,14 @@
+[gd_resource type="Resource" format=3]
+
+[sub_resource type="GDScript" id="GDScript_p3vaq"]
+script/source = "extends Resource
+
+@export var amount_zq : int = 0
+
+func total_zq() -> int:
+	return amount_zq * Boot.boot_counter
+"
+
+[resource]
+script = SubResource("GDScript_p3vaq")
+amount_zq = 6
