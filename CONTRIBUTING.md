@@ -32,3 +32,13 @@ You can always open a pull request and contribute some kind of change or improve
 >Pull requests can take time for review and testing before being accepted.
 >
 >*`- as you know, having time for everything is something we would all like. ☕`*
+
+### Tests
+Before opening a pull request, run the tests:
+
+```bash
+tests/run.sh
+```
+
+They export a small project with GDMaim and run what got exported, see [tests/README.md](tests/README.md).
+A fix is easier to review when it comes with a case that fails without it.
