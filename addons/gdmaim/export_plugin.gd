@@ -246,8 +246,11 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	_godot_files.flush()
 	
 func _export_end() -> void:
-	# The libraries of the addon are of no use to the game, however it got exported
+	# The libraries of the addon are of no use to the game, however it got exported. They are
+	# next to it by now. The second attempt is for an export that would only copy them later,
+	# which an export from the command line does not get to, as the editor quits right away
 	if !_export_path.is_empty():
+		_clean_libs(_export_path)
 		Engine.get_main_loop().create_timer(3.0).timeout.connect(_clean_libs.bind(_export_path))
 
 	if !_enabled:
