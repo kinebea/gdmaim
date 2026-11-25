@@ -74,6 +74,11 @@ for config in $configs; do
 	failed_here=0
 	passed_here=0
 	cp "$tests/configs/$config.cfg" .gdmaim/export.cfg
+	# Project settings of the configuration, "section/key=value", which the exported game has as well
+	cp "$tests/project/project.godot" project.godot
+	while IFS= read -r setting; do
+		[ -n "$setting" ] && printf '\n[%s]\n\n%s\n' "${setting%%/*}" "${setting#*/}" >> project.godot
+	done <<< "$(options "$config" project_setting)"
 	features="$(option "$config" features)"
 	script_mode="$(option "$config" script_export_mode)"
 	exclude="$(option "$config" exclude_filter)"

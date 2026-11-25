@@ -17,7 +17,7 @@ It looks for the editor as `godot`. Set `GODOT` to use another one:
 GODOT=/path/to/godot tests/run.sh
 ```
 
-A run takes three to four minutes and ends with `All 918 checks passed.` or with the cases that failed:
+A run takes three to four minutes and ends with `All 974 checks passed.` or with the cases that failed:
 
 ```
 == default
@@ -69,6 +69,7 @@ their default value.
 | `translate` | The settings GDMaim starts out with, a compressed source map among them. The game runs `broken/at_runtime.gd` (feature tag `crash`), which fails twice. Its log, translated with `util/translate_log.gd`, has to name the functions, the variable and the lines of the source. `check_viewer_log.gd` checks the same in the tab `Log` of the source map viewer. |
 | `encode` | The settings GDMaim starts out with and Encode Strings: every case has to do the same with its strings encoded. Check Exported Scripts is on as well. |
 | `inline` | The settings GDMaim starts out with, Inline Constants and Inline Enums: every case has to do the same with values in place of names. Encode Strings is on as well, for a string that took the place of a constant to be encoded, and Check Exported Scripts. |
+| `enum_warning` | Inline Enums in a project that sets the warning `Int As Enum Without Cast` to Error: the export has to say that it leaves Inline Enums out, and the game has to compile. |
 | `binary_preset` | A preset that exports scripts as binary tokens, which GDMaim reports as an error. |
 
 The lines beginning with `;` at the top of a configuration are for `run.sh`:
@@ -84,6 +85,8 @@ The lines beginning with `;` at the top of a configuration are for `run.sh`:
   addon is left next to it. No export templates are needed: `run.sh` writes a file that passes for one.
 - `export_log` is an expression the output of the export has to match. It may be given several times.
 - `export_log_not` is one the output of the export must not match.
+- `project_setting` is a setting of the project, as `section/key=value`, added to `project.godot` for
+  that configuration, so the exported game has it as well. It may be given several times.
 - `translate_log` has the log of the game translated with the source map of the export. It is an
   expression the translated log has to match, and may be given several times. The game has to run
   with the feature tag `crash` for this, as `check_viewer_log.gd` looks for its errors.
