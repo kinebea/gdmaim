@@ -17,7 +17,7 @@ It looks for the editor as `godot`. Set `GODOT` to use another one:
 GODOT=/path/to/godot tests/run.sh
 ```
 
-A run takes three to four minutes and ends with `All 624 checks passed.` or with the cases that failed:
+A run takes three to four minutes and ends with `All 636 checks passed.` or with the cases that failed:
 
 ```
 == default
@@ -42,8 +42,9 @@ the project, which every run shares.
 
 `run.sh` exports that project once for every file in `tests/configs` and runs each exported pack.
 Around every export it also checks that no script of the addon reported an error and that the files
-of Godot which GDMaim edits during an export are back to what they were. For the configuration
-`default` it checks the source map as well, with `check_source_map.gd`.
+of Godot which GDMaim edits during an export are back to what they were, and of every game that it
+does not look for an extension which is not in it. For the configuration `default` it checks the
+source map as well, with `check_source_map.gd`.
 
 ## Configurations
 

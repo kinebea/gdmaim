@@ -129,6 +129,12 @@ for config in $configs; do
 		if ! grep -q '^\[DONE\]' "out/run.$config.log"; then
 			fail "run | the game did not run to the end, see $project/out/run.$config.log"
 		fi
+		# The addon stays out of the game, and so must the extension it brings along
+		if grep -q "Error loading extension" "out/run.$config.log"; then
+			fail "run | the game looks for an extension that is not in it: $(grep -m1 "Error loading extension" "out/run.$config.log")"
+		else
+			pass
+		fi
 	else
 		fail "export | nothing was exported, see $project/out/export.$config.log"
 	fi

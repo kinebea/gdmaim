@@ -77,13 +77,25 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	
 	_initialize_third_party()
 	
+	# The addon is not part of the game however it gets exported, so the extension it brings
+	# along must not be in the list of extensions the game loads when it starts
+	_godot_files = GodotFiles.new()
+	var extension_list_src := FileAccess.get_file_as_string(GODOT_EXTENSION_LIST_PATH)
+	var extension_list : String
+	for line in extension_list_src.split("\n", false):
+		if not line.ends_with("gdbc.gdextension"):
+			extension_list += line + "\n"
+	_godot_files.edit(GODOT_EXTENSION_LIST_PATH, extension_list_src.to_utf8_buffer(), extension_list.to_utf8_buffer())
+	
 	if !_enabled:
+		_godot_files.flush()
 		return
 
 	# Godot turns scripts into binary tokens before this plugin gets to see them, which
 	# would leave the original scripts next to renamed scenes, resources and class names
 	if get_export_preset().get_script_export_mode() != EditorExportPreset.MODE_SCRIPT_TEXT:
 		_enabled = false
+		_godot_files.flush()
 		# Shown in the export dialog and printed as an error
 		get_export_platform().add_message(EditorExportPlatform.EXPORT_MESSAGE_ERROR, "GDMaim", 'Nothing has been obfuscated! The export preset has to export scripts as text: set "GDScript Export Mode" to "Text" in the "Scripts" tab of the export preset. To export binary tokens, use the "Export Mode" setting of GDMaim instead.')
 		return
@@ -98,7 +110,6 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	
 	var scripts : PackedStringArray = _get_files("res://", ".gd")
 	
-	_godot_files = GodotFiles.new()
 	_autoloads.clear()
 	_src_obfuscators.clear()
 	_res_obfuscators.clear()
@@ -220,14 +231,6 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 			printerr("GDMaim - Failed to locate GDBC! Cannot compile scripts to bytecode!")
 		print("GDMaim - Exporting scripts as plain text.")
 	
-	# Remove gdbc from extension list
-	var extension_list_src := FileAccess.get_file_as_string(GODOT_EXTENSION_LIST_PATH)
-	var extension_list : String
-	for line in extension_list_src.split("\n", false):
-		if not line.ends_with("gdbc.gdextension"):
-			extension_list += line + "\n"
-	_godot_files.edit(GODOT_EXTENSION_LIST_PATH, extension_list_src.to_utf8_buffer(), extension_list.to_utf8_buffer())
-	
 	# Modify class cache
 	var class_cache := ConfigFile.new()
 	var class_cache_src : PackedByteArray = FileAccess.get_file_as_bytes(GODOT_CLASS_CACHE_PATH)
@@ -253,6 +256,11 @@ func _export_end() -> void:
 		_clean_libs(_export_path)
 		Engine.get_main_loop().create_timer(3.0).timeout.connect(_clean_libs.bind(_export_path))
 
+	# Revert temporary changes made to Godot files
+	if _godot_files:
+		_godot_files.restore()
+		_godot_files = null
+	
 	if !_enabled:
 		return
 	
@@ -260,9 +268,6 @@ func _export_end() -> void:
 		push_error('GDMaim - No scripts have been exported! Please set the export mode of scripts to "Text" in the current export template.')
 	else:
 		_save_source_map()
-
-	# Revert temporary changes made to Godot files
-	_godot_files.restore()
 
 	_autoloads.clear()
 	_symbols = null
