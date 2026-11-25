@@ -172,6 +172,15 @@ for config in $configs; do
 		else
 			fail "translate log | no word on the source map missing, see $project/out/translate_unnamed.$config.log"
 		fi
+
+		# The same log in the source map viewer
+		limit 120 "$godot" --headless --path . -s "$tests/check_viewer_log.gd" -- "out/run.$config.log" > "out/viewer.$config.log" 2>&1
+		grep '^\[CASE\] FAIL' "out/viewer.$config.log" | sed 's/^\[CASE\] /  /'
+		passed_here=$((passed_here + $(grep -c '^\[CASE\] PASS' "out/viewer.$config.log")))
+		failed_here=$((failed_here + $(grep -c '^\[CASE\] FAIL' "out/viewer.$config.log")))
+		if ! grep -q '^\[DONE\]' "out/viewer.$config.log"; then
+			fail "source map viewer | the check did not run to the end, see $project/out/viewer.$config.log"
+		fi
 	fi
 
 	if [ -f out/test.pck ] && [ "$(option "$config" source_map)" = "check" ]; then

@@ -423,6 +423,31 @@ visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 
+[node name="Log" type="HSplitContainer" parent="HSplitContainer/HSplitContainer/VSplitContainer/BottomDock"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="LogInput" type="TextEdit" parent="HSplitContainer/HSplitContainer/VSplitContainer/BottomDock/Log"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Paste the log of the exported game here"
+drag_and_drop_selection_enabled = false
+virtual_keyboard_enabled = false
+
+[node name="LogTranslated" type="TextEdit" parent="HSplitContainer/HSplitContainer/VSplitContainer/BottomDock/Log"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "The log shows here with the names and the lines of the source, once a source map is open. Click on a line that names a script to open it there"
+editable = false
+drag_and_drop_selection_enabled = false
+virtual_keyboard_enabled = false
+middle_mouse_paste_enabled = false
+
 [node name="Symbols" type="Control" parent="HSplitContainer/HSplitContainer"]
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
@@ -505,4 +530,6 @@ use_native_dialog = true
 [connection signal="gui_input" from="HSplitContainer/HSplitContainer/VSplitContainer/Code/Source/VSplitContainer/VBoxContainer/Control/SourceCode" to="." method="_on_source_code_gui_input"]
 [connection signal="caret_changed" from="HSplitContainer/HSplitContainer/VSplitContainer/Code/Exported/VSplitContainer/VBoxContainer/Control/ExportedCode" to="." method="_on_exported_code_caret_changed"]
 [connection signal="gui_input" from="HSplitContainer/HSplitContainer/VSplitContainer/Code/Exported/VSplitContainer/VBoxContainer/Control/ExportedCode" to="." method="_on_exported_code_gui_input"]
+[connection signal="text_changed" from="HSplitContainer/HSplitContainer/VSplitContainer/BottomDock/Log/LogInput" to="." method="_on_log_input_text_changed"]
+[connection signal="caret_changed" from="HSplitContainer/HSplitContainer/VSplitContainer/BottomDock/Log/LogTranslated" to="." method="_on_log_translated_caret_changed"]
 [connection signal="file_selected" from="FileDialog" to="." method="_on_file_dialog_file_selected"]
