@@ -17,7 +17,7 @@ It looks for the editor as `godot`. Set `GODOT` to use another one:
 GODOT=/path/to/godot tests/run.sh
 ```
 
-A run takes three to four minutes and ends with `All 636 checks passed.` or with the cases that failed:
+A run takes three to four minutes and ends with `All 680 checks passed.` or with the cases that failed:
 
 ```
 == default
@@ -57,14 +57,15 @@ their default value.
 | `default` | The settings GDMaim starts out with. |
 | `other_seed` | The same with another seed, which names and shuffles everything differently. |
 | `strip_typing` | Strip Static Typing turned on. |
-| `rename_only` | Only renaming: no post-processing, no shuffling, no source map name in the game. |
+| `rename_only` | Only renaming: no post-processing, no shuffling, no source map name in the game. Check Exported Scripts is on and has nothing to report. |
 | `no_rename` | Enable Obfuscation turned off, which leaves post-processing. |
 | `empty_prefix` | No prefix for generated names. |
 | `fallbacks` | An empty preprocessor prefix and an empty list of characters. |
-| `binary` | Export Mode set to Binary: scripts as binary tokens, scenes and resources as binary files. |
+| `binary` | Export Mode set to Binary: scripts as binary tokens, scenes and resources as binary files. Check Exported Scripts is on, as in `verify`. |
 | `compressed` | Export Mode set to Compressed. |
 | `no_scripts` | A preset that leaves every script out. Only the export is checked, the pack is not run. |
 | `addon_not_excluded` | No GDMaim, and a preset that does not leave the addon out, which the export plugin then does. Exports the game and not just its pack. |
+| `verify` | The settings GDMaim starts out with and Check Exported Scripts, which has to report `broken/after_export.gd`: a script no case loads, and which does not compile once the regex filter has removed a line of it. |
 | `binary_preset` | A preset that exports scripts as binary tokens, which GDMaim reports as an error. |
 
 The lines beginning with `;` at the top of a configuration are for `run.sh`:
@@ -77,7 +78,7 @@ The lines beginning with `;` at the top of a configuration are for `run.sh`:
 - `exclude_filter` is the filter of the preset for files to leave out, empty if left out.
 - `export=game` exports the game instead of its pack alone, and has it checked that no library of the
   addon is left next to it. No export templates are needed: `run.sh` writes a file that passes for one.
-- `export_log` is an expression the output of the export has to match.
+- `export_log` is an expression the output of the export has to match. It may be given several times.
 - `run=skip` keeps the exported pack from being run.
 - `source_map=check` has the source map checked.
 

@@ -19,9 +19,13 @@ limit() {
 	if command -v timeout > /dev/null; then timeout "$@"; else shift; "$@"; fi
 }
 
-# The value of a line "; key=value" in a configuration
+# The values of the lines "; key=value" in a configuration, and the first of them
+options() {
+	sed -n "s/^; *$2=//p" "$tests/configs/$1.cfg" | tr -d '\r'
+}
+
 option() {
-	sed -n "s/^; *$2=//p" "$tests/configs/$1.cfg" | tr -d '\r' | head -n 1
+	options "$1" "$2" | head -n 1
 }
 
 fail() {
@@ -109,14 +113,15 @@ for config in $configs; do
 	else
 		pass
 	fi
-	expected="$(option "$config" export_log)"
-	if [ -n "$expected" ]; then
-		if grep -q -E "$expected" "out/export.$config.log"; then
+	while IFS= read -r expected; do
+		if [ -z "$expected" ]; then
+			continue
+		elif grep -q -E "$expected" "out/export.$config.log"; then
 			pass
 		else
 			fail "export | the export does not report: $expected"
 		fi
-	fi
+	done <<< "$(options "$config" export_log)"
 
 	# The cases, which the exported project runs itself
 	if [ "$(option "$config" run)" = "skip" ]; then

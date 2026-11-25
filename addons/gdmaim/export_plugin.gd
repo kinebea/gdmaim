@@ -268,6 +268,8 @@ func _export_end() -> void:
 		push_error('GDMaim - No scripts have been exported! Please set the export mode of scripts to "Text" in the current export template.')
 	else:
 		_save_source_map()
+		if settings.verify_scripts:
+			_verify_scripts()
 
 	_autoloads.clear()
 	_symbols = null
@@ -338,6 +340,78 @@ func _save_source_map() -> void:
 		print("GDMaim - A source map has been saved to '" + full_source_map_path + "'")
 	else:
 		push_warning("GDMaim - Failed to write source map to '" + full_source_map_path + "'!")
+
+
+# Has another Godot load every script of the pack that got exported, and reports the ones that
+# do not compile. Godot names the exported script, its line and its names: the report leads
+# them back to the source
+func _verify_scripts() -> void:
+	var pack : String = _get_exported_pack()
+	if pack.is_empty():
+		print("GDMaim - The exported scripts have not been checked: there is no pack file at '" + _export_path + "'")
+		return
+	
+	var checker : String = ProjectSettings.globalize_path(_get_addon_path() + "util/check_pack.gd")
+	var output : Array = []
+	OS.execute(OS.get_executable_path(), ["--headless", "--main-pack", pack, "--script", checker], output, true)
+	var lines : PackedStringArray = "\n".join(output).replace("\r", "").split("\n")
+	
+	var source_names : Dictionary
+	for symbol : SymbolTable.Symbol in _symbols._global_symbols.values() + _symbols._local_symbols:
+		source_names[symbol.get_name()] = symbol.get_source_name()
+	
+	const CHECKED : String = "GDMaim - Scripts checked: "
+	var where := RegEx.create_from_string("at: GDScript::reload \\((.+):(\\d+)\\)")
+	var checked : int = -1
+	var failed : Dictionary
+	var reported : Dictionary
+	for i in lines.size():
+		if lines[i].begins_with(CHECKED):
+			checked = lines[i].trim_prefix(CHECKED).to_int()
+		if !lines[i].begins_with("SCRIPT ERROR: ") or i + 1 == lines.size():
+			continue
+		var found : RegExMatch = where.search(lines[i + 1])
+		if !found:
+			continue
+		var path : String = found.get_string(1)
+		var line : int = found.get_string(2).to_int()
+		if _src_obfuscators.has(path):
+			# Lines count from zero in the mappings
+			line = _src_obfuscators[path].generate_line_mappings()[1].get(line - 1, line - 1) + 1
+		var message : String = lines[i].trim_prefix("SCRIPT ERROR: ").trim_prefix("Parse Error: ").trim_prefix("Compile Error: ")
+		var report : String = path + ":" + str(line) + " does not compile once exported: " + _to_source_names(message, source_names)
+		failed[path] = true
+		if !reported.has(report):
+			reported[report] = true
+			push_error("GDMaim - " + report)
+	
+	if checked == -1:
+		push_warning("GDMaim - The exported scripts could not be checked: Godot did not get to load them from '" + pack + "'")
+	elif failed.is_empty():
+		print("GDMaim - All " + str(checked) + " exported scripts compile")
+	else:
+		push_error("GDMaim - " + str(failed.size()) + " of " + str(checked) + " exported scripts " + ("does" if failed.size() == 1 else "do") + " not compile")
+
+
+# The pack file of the export, or nothing for an export which has none of its own
+func _get_exported_pack() -> String:
+	var path : String = _export_path
+	if path.is_relative_path():
+		path = "res://".path_join(path)
+	path = ProjectSettings.globalize_path(path)
+	if !(path.get_extension() in ["pck", "zip"]):
+		path = path.get_basename() + ".pck"
+	return path if FileAccess.file_exists(path) else ""
+
+
+# Puts the names of the source in place of the generated ones Godot quotes in a message
+func _to_source_names(message : String, source_names : Dictionary) -> String:
+	var parts : PackedStringArray = message.split("\"")
+	for i in range(1, parts.size(), 2):
+		var name : String = parts[i].trim_suffix("()")
+		if source_names.has(name):
+			parts[i] = parts[i].replace(name, source_names[name])
+	return "\"".join(parts)
 
 
 
