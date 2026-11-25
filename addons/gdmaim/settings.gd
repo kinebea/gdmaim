@@ -15,8 +15,8 @@ const DEFAULT_PREPROCESSOR_PREFIX : String = "##"
 
 var obfuscation_enabled : bool = true
 var shuffle_top_level : bool = true
-var inline_constants : bool = true
-var inline_enums : bool = true
+var inline_constants : bool = false
+var inline_enums : bool = false
 var obfuscate_export_vars : bool = true
 var obfuscate_signals : bool = true
 var symbol_target_length : int = 30
@@ -103,8 +103,9 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 	add_entry("obfuscate_export_vars", "export_vars", "Obfuscate Export Vars", "If true, obfuscate export variables.\nNote: Requires scenes and resources which modify custom export vars to be saved as '*.tscn' and '*.tres', respectively.")
 	#add_entry("obfuscate_signals", "signals", "Obfuscate Signals", "If true, obfuscate signals.")
 	add_entry("shuffle_top_level", "shuffle_top_level", "Shuffle Top-Level Declarations", "If true, shuffles all top-level declarations of variables, functions, signals, etc.")
-	add_entry("inline_constants", "inline_consts", "Inline Constants", "If true, replace constants with hardcoded values.\nNote: Only bool, int, float, Color, Vector(2/3/4)(i) and NodePath are supported.").disabled = true
-	add_entry("inline_enums", "inline_enums", "Inline Enums", "If true, replace enums with hardcoded values.").disabled = true
+	# Under another key than the one this setting had while it did nothing, which every configuration saved as true
+	add_entry("inline_constants", "inline_constants", "Inline Constants", "If true, the value of a constant is put where its name is used.\nNote: Only for a bool, a number, a String, a Color or a Vector(2/3/4)(i). A constant of a class has to be the only member of its name in the project, and is replaced where its name stands by itself, or after self or the name of its class.\nThe constants stay declared.")
+	add_entry("inline_enums", "inline_enum_keys", "Inline Enums", "If true, the value of a key of an enum is put where the key is used.\nNote: An enum has to be the only member of its name in the project, and a key is replaced where it follows the name of its enum. The value of a key has to be written as a number, or counted on from one that is.\nThe enums stay declared, as they may be used as a type or for their keys.")
 	add_entry("preprocessor_prefix", "preprocessor_prefix", "Preprocessor Prefix", "Sets the prefix to use for preprocessor hints.")
 	
 	set_category("post_process", "Post Processing")

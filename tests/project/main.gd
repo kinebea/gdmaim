@@ -43,6 +43,8 @@ func _ready() -> void:
 		"postprocess/removed_lines",
 		"postprocess/regex_filter",
 		"postprocess/encoded_strings",
+		"postprocess/inline_constants",
+		"postprocess/inline_enums",
 		"resources/multiline_strings",
 		"resources/animation_paths",
 		"resources/track_types",

@@ -5,6 +5,7 @@ const _Settings := preload("settings.gd")
 const _Logger := preload("logger.gd")
 const GodotFiles := preload("godot_files.gd")
 const ScriptObfuscator := preload("obfuscator/script/script_obfuscator.gd")
+const Inliner := preload("obfuscator/script/inliner.gd")
 const ResourceObfuscator := preload("obfuscator/resource/resource_obfuscator.gd")
 const SymbolTable := preload("obfuscator/symbol_table.gd")
 const Tokenizer := preload("obfuscator/script/tokenizer/tokenizer.gd")
@@ -215,6 +216,9 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 		# JUMP 127
 	if settings.obfuscation_enabled:
 		_symbols.obfuscate_symbols()
+	
+	if settings.obfuscation_enabled and (settings.inline_constants or settings.inline_enums):
+		Inliner.new().run(_src_obfuscators.values(), _symbols, settings.inline_constants, settings.inline_enums)
 	
 	# Initialize gdbc if necessary
 	_compiler = null

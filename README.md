@@ -83,9 +83,28 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 `Shuffle Top-Level Declarations`: Shuffles the line positions of top-level declarations, such as variables, functions and classes.
 
-`Inline Constants`: If enabled, accesses to constants will be replaced with hardcoded values. Declarations of constants get removed.
+`Inline Constants`: If enabled, the value of a constant is put where its name is used, so that nothing tells any more that those places have to do with each other.
 
-`Inline enums`: If enabled, accesses to enum keys will be replaced with hardcoded values. Declarations of enums get removed.
+```js
+const MAX_SPEED : float = 300
+
+func is_too_fast(speed : float) -> bool:
+	return speed > MAX_SPEED
+```
+=>
+```js
+const __wVbT:float=300
+func __Uk3n(__mY1q:float)->bool:
+	return __mY1q>300.0
+```
+
+This is done for a constant whose value is written as a bool, a number, a String, a Color or a Vector2, Vector3 or Vector4, with or without an `i`. GDMaim tells the members of classes apart by their name alone, across the whole project: the constant of a class therefore has to be the only member of its name, and is replaced where its name stands by itself, or after `self` or the `class_name` of its script. A constant of a function is replaced wherever it is used. With `Encode Strings`, a string that got put in place of a constant is encoded like any other. A string which is obfuscated by a hint where the constant is declared is not put in its place.
+
+The constants stay declared, as something may use them which is not replaced: a use GDMaim cannot be sure of, a string that names the constant, a scene.
+
+`Inline Enums`: If enabled, the value of a key of an enum is put where the key is used: `State.RUN` becomes `1`. The enum has to be the only member of its name in the project, and a key is replaced where it follows the name of its enum. The keys of an enum without a name are treated like constants. The value of a key has to be written as a whole number, or counted on from one that is: a key whose value is worked out, like `1 << 3`, stays as it is, as do the keys after it up to the next number.
+
+The enums stay declared, as they may be used as a type or for their keys. A whole number is then written where an enum is expected, which GDScript warns about but takes. Do not use this if your project treats that warning as an error.
 
 `Preprocessor prefix`: The prefix to use for preprocessor hints.
 
