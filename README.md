@@ -182,7 +182,9 @@ SCRIPT ERROR: Invalid call. Nonexistent function 'read_temperature' in base 'Nil
    at: __x0Fx5VxOZZDtj8dqox0ZLUBVolIgVw.__TviF1c7oCREz8R8KG2pS4TyYA9MJbF (res://engine.gd:10)
 ```
 
-To read it with the names and the lines of your source code, have it translated with the source map of that build. Run this from the folder of your project:
+To read it with the names and the lines of your source code, have it translated with the source map of that build. In the source map viewer, open that source map and paste the log into the tab `Log` at the bottom. The translated log shows next to it, and clicking on a line of it that names a script opens that script on that line.
+
+The same from the command line, run from the folder of your project:
 
 ```
 godot --headless --path . -s res://addons/gdmaim/util/translate_log.gd -- game.log --out=game.source.log

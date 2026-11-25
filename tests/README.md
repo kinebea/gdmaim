@@ -17,7 +17,7 @@ It looks for the editor as `godot`. Set `GODOT` to use another one:
 GODOT=/path/to/godot tests/run.sh
 ```
 
-A run takes three to four minutes and ends with `All 745 checks passed.` or with the cases that failed:
+A run takes three to four minutes and ends with `All 747 checks passed.` or with the cases that failed:
 
 ```
 == default
@@ -65,7 +65,7 @@ their default value.
 | `no_scripts` | A preset that leaves every script out. Only the export is checked, the pack is not run. |
 | `addon_not_excluded` | No GDMaim, and a preset that does not leave the addon out, which the export plugin then does. Exports the game and not just its pack. |
 | `verify` | The settings GDMaim starts out with and Check Exported Scripts, which has to report `broken/after_export.gd`: a script no case loads, and which does not compile once the regex filter has removed a line of it. |
-| `translate` | The settings GDMaim starts out with, a compressed source map among them. The game runs `broken/at_runtime.gd` (feature tag `crash`), which fails twice. Its log, translated with `util/translate_log.gd`, has to name the functions, the variable and the lines of the source. |
+| `translate` | The settings GDMaim starts out with, a compressed source map among them. The game runs `broken/at_runtime.gd` (feature tag `crash`), which fails twice. Its log, translated with `util/translate_log.gd`, has to name the functions, the variable and the lines of the source. `check_viewer_log.gd` checks the same in the tab `Log` of the source map viewer. |
 | `binary_preset` | A preset that exports scripts as binary tokens, which GDMaim reports as an error. |
 
 The lines beginning with `;` at the top of a configuration are for `run.sh`:
@@ -80,7 +80,8 @@ The lines beginning with `;` at the top of a configuration are for `run.sh`:
   addon is left next to it. No export templates are needed: `run.sh` writes a file that passes for one.
 - `export_log` is an expression the output of the export has to match. It may be given several times.
 - `translate_log` has the log of the game translated with the source map of the export. It is an
-  expression the translated log has to match, and may be given several times.
+  expression the translated log has to match, and may be given several times. The game has to run
+  with the feature tag `crash` for this, as `check_viewer_log.gd` looks for its errors.
 - `run=skip` keeps the exported pack from being run.
 - `source_map=check` has the source map checked.
 
@@ -100,6 +101,6 @@ project got exported, ask `OS.has_feature()`.
 
 ## What is not covered
 
-- The dock and the source map viewer.
+- The dock, and the source map viewer apart from its tab `Log`.
 - Binary scenes (`.scn`) and binary resources that depend on other files.
 - Anything that only shows in a running editor, like a second export in the same session.

@@ -5,6 +5,8 @@ extends RefCounted
 ## scripts to the lines of the source.
 
 const SOURCE_MAP_NOTE : String = "GDMaim - Source map '"
+## How a log names a line of a script, as in "res://player.gd:12"
+const SCRIPT_LINE : String = "(res://[^\\n:]+?\\.gd):(\\d+)"
 
 
 ## The file name of the source map a log names, which the game prints when it starts if
@@ -42,8 +44,8 @@ static func translate(text : String, source_map : Dictionary) -> String:
 	var scripts : Dictionary = source_map.get("scripts", {})
 	var names : Dictionary = source_map.get("symbols", {}).get("export", {})
 
-	# The lines, as in "res://player.gd:12". They count from zero in the mappings
-	var where := RegEx.create_from_string("(res://[^\\n:]+?\\.gd):(\\d+)")
+	# The lines, which count from zero in the mappings
+	var where := RegEx.create_from_string(SCRIPT_LINE)
 	var parts : PackedStringArray = []
 	var at : int = 0
 	for found in where.search_all(text):

@@ -4,6 +4,7 @@ extends Window
 
 const ExportPlugin := preload("../../export_plugin.gd")
 const _Settings := preload("../../settings.gd")
+const LogTranslator := preload("../../util/log_translator.gd")
 
 var _as_plugin : bool = false
 var _source_map : Dictionary
@@ -26,6 +27,8 @@ var _tool : EditorPlugin
 @onready var exported_code_search : Panel = %ExportedCodeSearch
 @onready var source_symbols : Tree = %SourceSymbols
 @onready var export_symbols : Tree = %ExportSymbols
+@onready var log_input : TextEdit = %LogInput
+@onready var log_translated : TextEdit = %LogTranslated
 @onready var border : StyleBox = self["theme_override_styles/embedded_border"]
 @onready var border_unfocused : StyleBox = self["theme_override_styles/embedded_unfocused_border"]
 
@@ -168,6 +171,8 @@ func _load_source_map(path : String) -> void:
 	var export_symbol_table : Dictionary = _source_map.get("symbols", {}).get("export")
 	for symbol in export_symbol_table:
 		root.create_child().set_text(0, symbol + ": " + export_symbol_table[symbol])
+
+	_translate_log()
 
 
 func _load_script(path : String) -> void:
@@ -334,6 +339,35 @@ func _on_source_code_gui_input(event: InputEvent) -> void:
 func _on_exported_code_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		exported_code.highlight_current_line = true
+
+
+# Translates the log entered in the tab 'Log' with the source map that is open
+func _translate_log() -> void:
+	if _source_map.is_empty() or log_input.text.is_empty():
+		log_translated.text = ""
+		return
+
+	var translated : String = LogTranslator.translate(log_input.text, _source_map)
+	var named : String = LogTranslator.find_source_map_name(log_input.text)
+	if !named.is_empty() and named != _source_map.get("filename", ""):
+		translated = "[This log names the source map '" + named + "', which is not the one that is open]\n" + translated
+	log_translated.text = translated
+
+
+func _on_log_input_text_changed() -> void:
+	_translate_log()
+
+
+# Opens the script which the line of the caret names, on the line it names
+func _on_log_translated_caret_changed() -> void:
+	var found : RegExMatch = RegEx.create_from_string(LogTranslator.SCRIPT_LINE).search(log_translated.get_line(log_translated.get_caret_line()))
+	if !found or !_source_map.get("scripts", {}).has(found.get_string(1)):
+		return
+
+	if _script_data.get("path", "") != found.get_string(1):
+		_load_script(found.get_string(1))
+	source_code.highlight_current_line = true
+	source_code.set_caret_line(clampi(found.get_string(2).to_int() - 1, 0, source_code.get_line_count() - 1))
 
 
 func _on_file_filter_text_changed(new_text : String) -> void:
