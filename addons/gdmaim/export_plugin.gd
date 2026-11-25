@@ -339,7 +339,7 @@ func _save_source_map() -> void:
 
 # Has another Godot load every script of the pack that got exported, and reports the ones that
 # do not compile. Godot names the exported script, its line and its names: the report leads
-# them back to the source
+# them back to the source. A script that only fails for needing one of those is counted, not reported
 func _verify_scripts() -> void:
 	var pack : String = _get_exported_pack()
 	if pack.is_empty():
@@ -357,9 +357,10 @@ func _verify_scripts() -> void:
 	
 	const CHECKED : String = "GDMaim - Scripts checked: "
 	var where := RegEx.create_from_string("at: GDScript::reload \\((.+):(\\d+)\\)")
+	var needs := RegEx.create_from_string("\"(res://[^\"]+)\"")
 	var checked : int = -1
-	var failed : Dictionary
-	var reported : Dictionary
+	var errors : Array[Dictionary] = []
+	var with_errors : Dictionary
 	for i in lines.size():
 		if lines[i].begins_with(CHECKED):
 			checked = lines[i].trim_prefix(CHECKED).to_int()
@@ -368,24 +369,47 @@ func _verify_scripts() -> void:
 		var found : RegExMatch = where.search(lines[i + 1])
 		if !found:
 			continue
-		var path : String = found.get_string(1)
-		var line : int = found.get_string(2).to_int()
-		if _src_obfuscators.has(path):
-			# Lines count from zero in the mappings
-			line = _src_obfuscators[path].generate_line_mappings()[1].get(line - 1, line - 1) + 1
 		var message : String = lines[i].trim_prefix("SCRIPT ERROR: ").trim_prefix("Parse Error: ").trim_prefix("Compile Error: ")
-		var report : String = path + ":" + str(line) + " does not compile once exported: " + _to_source_names(message, source_names)
-		failed[path] = true
-		if !reported.has(report):
-			reported[report] = true
-			push_error("GDMaim - " + report)
+		errors.append({ "path": found.get_string(1), "line": found.get_string(2).to_int(), "message": message })
+		with_errors[found.get_string(1)] = true
+	
+	# A script may only fail for needing one that does not compile, which is nothing to look into
+	var failed : Dictionary
+	var held_up : Dictionary
+	var reports : PackedStringArray = []
+	for error in errors:
+		var needed : RegExMatch = needs.search(error.message)
+		if error.message.begins_with("Failed to compile depended scripts") or (needed and needed.get_string(1) != error.path and with_errors.has(needed.get_string(1))):
+			held_up[error.path] = true
+			continue
+		var line : int = error.line
+		if _src_obfuscators.has(error.path):
+			# Lines count from zero in the mappings
+			line = _src_obfuscators[error.path].generate_line_mappings()[1].get(line - 1, line - 1) + 1
+		var report : String = error.path + ":" + str(line) + " does not compile once exported: " + _to_source_names(error.message, source_names)
+		failed[error.path] = true
+		if !reports.has(report):
+			reports.append(report)
+	for path in failed:
+		held_up.erase(path)
+	if failed.is_empty():
+		# What they need is not among the scripts that got checked
+		for path in held_up:
+			failed[path] = true
+			reports.append(path + " does not compile once exported: a script it needs does not compile")
+		held_up.clear()
+	for report in reports:
+		push_error("GDMaim - " + report)
 	
 	if checked == -1:
 		push_warning("GDMaim - The exported scripts could not be checked: Godot did not get to load them from '" + pack + "'")
 	elif failed.is_empty():
 		print("GDMaim - All " + str(checked) + " exported scripts compile")
 	else:
-		push_error("GDMaim - " + str(failed.size()) + " of " + str(checked) + " exported scripts " + ("does" if failed.size() == 1 else "do") + " not compile")
+		var summary : String = str(failed.size()) + " of " + str(checked) + " exported scripts " + ("does" if failed.size() == 1 else "do") + " not compile"
+		if !held_up.is_empty():
+			summary += ", which keeps " + str(held_up.size()) + " more from compiling"
+		push_error("GDMaim - " + summary)
 
 
 # The pack file of the export, or nothing for an export which has none of its own
