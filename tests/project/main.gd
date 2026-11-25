@@ -57,6 +57,9 @@ func _ready() -> void:
 		"export/addon_left_out",
 		"export/excluded_paths",
 	]
+	if OS.has_feature("crash"):
+		# Errors for the log, which the configurations with this tag have translated
+		load("res://broken/at_runtime.gd").new().start_engine()
 	for case_name in cases:
 		var result : String = await run(case_name)
 		print("[CASE] ", "PASS" if result == "ok" else "FAIL", " | ", case_name, " | ", result)

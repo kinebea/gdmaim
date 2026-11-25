@@ -138,6 +138,36 @@ for config in $configs; do
 		fail "export | nothing was exported, see $project/out/export.$config.log"
 	fi
 
+	# The log of that run, led back to the source with the source map of the export
+	if [ -n "$(options "$config" translate_log)" ]; then
+		translate=(limit 120 "$godot" --headless --path . -s res://addons/gdmaim/util/translate_log.gd --)
+		rm -f "out/translated.$config.log"
+		"${translate[@]}" "out/run.$config.log" "--out=out/translated.$config.log" > "out/translate.$config.log" 2>&1
+		while IFS= read -r expected; do
+			if grep -q -E "$expected" "out/translated.$config.log" 2> /dev/null; then
+				pass
+			else
+				fail "translate log | the translated log does not have: $expected"
+			fi
+		done <<< "$(options "$config" translate_log)"
+
+		# A log which does not name its source map has to be given one, and is printed without --out
+		grep -v "GDMaim - Source map" "out/run.$config.log" > "out/unnamed.$config.log"
+		source_map="$(ls addons/gdmaim/source_maps/*.map | tail -n 1)"
+		if "${translate[@]}" "out/unnamed.$config.log" "--map=$source_map" 2> /dev/null | grep -q -E "$(option "$config" translate_log)"; then
+			pass
+		else
+			fail "translate log | with --map, the log that gets printed is not translated"
+		fi
+		if "${translate[@]}" "out/unnamed.$config.log" > "out/translate_unnamed.$config.log" 2>&1; then
+			fail "translate log | a log which names no source map was taken without --map"
+		elif grep -q "does not name its source map" "out/translate_unnamed.$config.log"; then
+			pass
+		else
+			fail "translate log | no word on the source map missing, see $project/out/translate_unnamed.$config.log"
+		fi
+	fi
+
 	if [ -f out/test.pck ] && [ "$(option "$config" source_map)" = "check" ]; then
 		# The game names its source map when it starts, ahead of anything else it prints
 		if grep -m1 -E "GDMaim - Source map|^\[CASE\]" "out/run.$config.log" | grep -q "GDMaim - Source map"; then
