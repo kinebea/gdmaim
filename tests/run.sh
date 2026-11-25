@@ -122,6 +122,15 @@ for config in $configs; do
 			fail "export | the export does not report: $expected"
 		fi
 	done <<< "$(options "$config" export_log)"
+	while IFS= read -r unexpected; do
+		if [ -z "$unexpected" ]; then
+			continue
+		elif grep -q -E "$unexpected" "out/export.$config.log"; then
+			fail "export | the export reports: $unexpected"
+		else
+			pass
+		fi
+	done <<< "$(options "$config" export_log_not)"
 
 	# The cases, which the exported project runs itself
 	if [ "$(option "$config" run)" = "skip" ]; then
