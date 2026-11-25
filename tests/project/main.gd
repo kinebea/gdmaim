@@ -42,6 +42,7 @@ func _ready() -> void:
 		"postprocess/annotation_arguments",
 		"postprocess/removed_lines",
 		"postprocess/regex_filter",
+		"postprocess/encoded_strings",
 		"resources/multiline_strings",
 		"resources/animation_paths",
 		"resources/track_types",

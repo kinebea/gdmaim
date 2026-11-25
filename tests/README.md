@@ -17,7 +17,7 @@ It looks for the editor as `godot`. Set `GODOT` to use another one:
 GODOT=/path/to/godot tests/run.sh
 ```
 
-A run takes three to four minutes and ends with `All 747 checks passed.` or with the cases that failed:
+A run takes three to four minutes and ends with `All 814 checks passed.` or with the cases that failed:
 
 ```
 == default
@@ -61,11 +61,12 @@ their default value.
 | `empty_prefix` | No prefix for generated names. |
 | `fallbacks` | An empty preprocessor prefix and an empty list of characters. |
 | `binary` | Export Mode set to Binary: scripts as binary tokens, scenes and resources as binary files. Check Exported Scripts is on, as in `verify`, and the log of the game is translated, as in `translate`. |
-| `compressed` | Export Mode set to Compressed. |
+| `compressed` | Export Mode set to Compressed, and Encode Strings. |
 | `no_scripts` | A preset that leaves every script out. Only the export is checked, the pack is not run. |
 | `addon_not_excluded` | No GDMaim, and a preset that does not leave the addon out, which the export plugin then does. Exports the game and not just its pack. |
 | `verify` | The settings GDMaim starts out with and Check Exported Scripts, which has to report `broken/after_export.gd`: a script no case loads, and which does not compile once the regex filter has removed a line of it. |
 | `translate` | The settings GDMaim starts out with, a compressed source map among them. The game runs `broken/at_runtime.gd` (feature tag `crash`), which fails twice. Its log, translated with `util/translate_log.gd`, has to name the functions, the variable and the lines of the source. `check_viewer_log.gd` checks the same in the tab `Log` of the source map viewer. |
+| `encode` | The settings GDMaim starts out with and Encode Strings: every case has to do the same with its strings encoded. Check Exported Scripts is on as well. |
 | `binary_preset` | A preset that exports scripts as binary tokens, which GDMaim reports as an error. |
 
 The lines beginning with `;` at the top of a configuration are for `run.sh`:
@@ -73,7 +74,8 @@ The lines beginning with `;` at the top of a configuration are for `run.sh`:
 - `features` are the feature tags of the export preset. A case reads them with `OS.has_feature()` to
   tell what to expect: `renamed` if names are obfuscated, `postprocessed` if comments, filtered lines
   and feature functions are removed, `untyped` if static typing is stripped, `binary` if GDMaim
-  exports scripts as binary tokens, `crash` to have the game start with two errors.
+  exports scripts as binary tokens, `encoded` if strings are
+  exported encoded, `crash` to have the game start with two errors.
 - `script_export_mode` is the GDScript export mode of the preset, text if left out.
 - `exclude_filter` is the filter of the preset for files to leave out, empty if left out.
 - `export=game` exports the game instead of its pack alone, and has it checked that no library of the
