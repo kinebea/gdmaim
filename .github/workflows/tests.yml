@@ -7,11 +7,16 @@ on:
 
 jobs:
   export:
-    name: Export and run
+    name: Export and run (Godot ${{ matrix.godot }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # From the oldest version GDMaim is for to the newest
+        godot: [4.5-stable, 4.6-stable, 4.7.2-stable]
     env:
-      GODOT_VERSION: 4.6-stable
+      GODOT_VERSION: ${{ matrix.godot }}
     steps:
       - uses: actions/checkout@v7
 
@@ -28,5 +33,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: logs
+          name: logs-${{ matrix.godot }}
           path: tests/.work/project/out

@@ -41,4 +41,5 @@ tests/run.sh
 ```
 
 They export a small project with GDMaim and run what got exported, see [tests/README.md](tests/README.md).
+On GitHub they run for every pull request, with Godot 4.5, 4.6 and 4.7.
 A fix is easier to review when it comes with a case that fails without it.
