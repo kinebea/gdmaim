@@ -111,6 +111,8 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 `Export Mode`: Defines the final format in which the scripts will be exported. This has the same function as the script export option from the editor, allowing to choose between plain text, binary tokens or compressed binary tokens.
 
+`Check Exported Scripts`: If enabled, every script of the exported pack is loaded once the export is done, and the ones that do not compile are reported, with the line and the names of the source code. This finds what obfuscation or post-processing broke before the game is run. It takes another start of Godot, runs the static initializers of the scripts and `_init()` of the autoloads, and is only done for exports which write a pack file, next to the game or on its own.
+
 ### Name Generator
 
 `Prefix`: Sets the prefix to use for all generated names.

@@ -43,6 +43,7 @@ var debug_scripts : PackedStringArray
 var debug_resources : PackedStringArray
 var obfuscate_debug_only : bool = false
 var export_mode : int = ExportMode.TEXT
+var verify_scripts : bool = false
 
 var use_custom_token_ignore_file : bool = false
 var custom_token_ignore_file_path : String = "res://addons/gdmaim/user/ignore_tokens.txt"
@@ -118,6 +119,7 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 	add_entry("regex_filter", "regex_filter", "", "Enter Regular Expression")
 	add_entry("feature_filters", "feature_filters", "Process Feature Filters", "If true, export template feature tags may be used to filter code.")
 	add_entry("export_mode", "export_mode", "Export Mode", "Sets the exported script format.\nText: easier debugging\nBinary: faster loading\nCompressed: smaller files").set_custom_type(Entry.CustomType.OPTIONS, ["Text", "Binary", "Compressed"])
+	add_entry("verify_scripts", "verify_scripts", "Check Exported Scripts", "If true, loads every script of the exported pack once the export is done and reports the ones that do not compile, with the line and the names of the source.\nNote: Runs the static initializers of the scripts and _init() of the autoloads. Only for exports which write a pack file.")
 	
 	set_category("id", "Name Generator")
 	add_entry("symbol_prefix", "prefix", "Prefix", "Sets the prefix to use for all generated names.")
