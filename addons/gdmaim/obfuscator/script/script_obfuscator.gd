@@ -20,6 +20,7 @@ var tokenizer : Tokenizer
 var _symbol_table : SymbolTable
 var _ast : AST.ASTNode
 var _encoded_strings : Dictionary # The strings that get exported encoded, and whether a space has to go ahead of them
+var _plain_strings : Dictionary # The strings a hint keeps from being encoded
 
 func _init(path : String) -> void:
 	self.path = path
@@ -45,6 +46,7 @@ func run(features : PackedStringArray) -> bool:
 	tokenizer.reset()
 	
 	var _str_processing : bool = false
+	var plain_strings : bool = false
 	while !tokenizer.is_eof():
 		var token : Token = tokenizer.get_next()
 		var next_token : Token = tokenizer.peek()
@@ -58,6 +60,13 @@ func run(features : PackedStringArray) -> bool:
 					_str_processing = true
 				PreprocessorHints.END_OBFUSCATE_STRINGS:
 					_str_processing = false		
+				PreprocessorHints.START_PLAIN_STRINGS:
+					plain_strings = true
+				PreprocessorHints.END_PLAIN_STRINGS:
+					plain_strings = false
+		
+		if token.is_string_literal() and (plain_strings or tokenizer.has_source_hint(token.source_line, PreprocessorHints.PLAIN_STRINGS)):
+			_plain_strings[token] = true
 		
 		# Hints for strings go by the line of source code, as several of those may have been merged into one
 		if tokenizer.has_source_hint(token.source_line, PreprocessorHints.OBFUSCATE_STRINGS_SEED):
@@ -801,7 +810,7 @@ func _encode_strings() -> void:
 					var next : int = _find_statement(tokens, i + 1)
 					constant = next != -1 and _takes_constants(tokens, next)
 					line_constant = constant
-			elif token.type == Token.Type.STRING_LITERAL and !line_constant and _can_encode_string(tokens, i):
+			elif token.type == Token.Type.STRING_LITERAL and !line_constant and !_plain_strings.has(token) and _can_encode_string(tokens, i):
 				_encoded_strings[token] = tokens[i - 1].is_of_type(Token.Type.KEYWORD | Token.Type.SYMBOL | Token.Type.LITERAL | Token.Type.NUMBER_LITERAL) if i > 0 else false
 
 

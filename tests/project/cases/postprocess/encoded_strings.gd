@@ -47,6 +47,14 @@ func es_local() -> String:
 	const ES_LOCAL : String = "es local kept"
 	return ES_LOCAL + " es local text"
 
+func es_plain() -> String:
+	var hinted : String = "es hint kept" ##PLAIN_STRINGS
+	##START_PLAIN_STRINGS
+	var first : String = "es section kept"
+	var second : String = "es section second"
+	##END_PLAIN_STRINGS
+	return hinted + first + second + "es after section"
+
 func es_escapes() -> String:
 	return "es tab\there, \"quotes\", back\\slash, line\nbreak, é\U01F600"
 
@@ -89,6 +97,8 @@ func run_case() -> String:
 		return "strings inside brackets"
 	if in_brackets[2].call() != "es inn" + "er kept" or es_local() != "es loc" + "al kept es local text":
 		return "a constant of a function"
+	if es_plain() != "es hi" + "nt keptes sec" + "tion keptes sec" + "tion secondes aft" + "er section":
+		return "a string kept plain by a hint"
 	if es_wide(["es wide" + " pattern", "es wide" + " second"]) != "es wi" + "de branch" or es_wide([]) != "es wi" + "de other":
 		return "a pattern over several lines"
 	if "es %s of %d" % ["format", 2] != "es for" + "mat of 2" or "es length".length() != 9 or !{"es key": 1}.has("es" + " key") or !("es" in "es inside"):
@@ -101,10 +111,10 @@ func run_case() -> String:
 	var plain : bool = exported.contains("es mem" + "ber text")
 	if plain == OS.has_feature("encoded"):
 		return "strings are not encoded" if plain else "strings are encoded"
-	for encoded in ["es sin" + "gle ", "es sta" + "tic text", "es_retur" + "ned_name", "es fir" + "st branch", "es tab", "es inl" + "ine text", "es brac" + "ket text", "es lam" + "bda other", "es %" + "s of","es len" + "gth", "es k" + "ey", "es ins" + "ide"]:
+	for encoded in ["es sin" + "gle ", "es sta" + "tic text", "es_retur" + "ned_name", "es fir" + "st branch", "es tab", "es inl" + "ine text", "es brac" + "ket text", "es lam" + "bda other", "es %" + "s of","es len" + "gth", "es k" + "ey", "es ins" + "ide", "es aft" + "er section"]:
 		if exported.contains(encoded) == OS.has_feature("encoded"):
 			return "'%s' is %s" % [encoded, "not encoded" if OS.has_feature("encoded") else "encoded"]
-	for kept in ["es const" + "ant kept", "es li" + "st kept", "es expor" + "ted kept", "es en" + "um kept", "es_na" + "me_kept", "es/pa" + "th/kept", "es r" + "aw", "es lo" + "ng", "es def" + "ault kept", "es fir" + "st pattern", "es thi" + "rd pattern", "es lam" + "bda pattern", "es wide" + " second", "es loc" + "al kept", "es inn" + "er kept"]:
+	for kept in ["es const" + "ant kept", "es li" + "st kept", "es expor" + "ted kept", "es en" + "um kept", "es_na" + "me_kept", "es/pa" + "th/kept", "es r" + "aw", "es lo" + "ng", "es def" + "ault kept", "es fir" + "st pattern", "es thi" + "rd pattern", "es lam" + "bda pattern", "es wide" + " second", "es loc" + "al kept", "es inn" + "er kept", "es hi" + "nt kept", "es sec" + "tion kept", "es sec" + "tion second"]:
 		if !exported.contains(kept):
 			return "'%s' is not left as it is" % kept
 	return "ok"
