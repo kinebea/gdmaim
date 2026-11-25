@@ -19,6 +19,7 @@ var tokenizer : Tokenizer
 
 var _symbol_table : SymbolTable
 var _ast : AST.ASTNode
+var _encoded_strings : Dictionary # The strings that get exported encoded, and whether a space has to go ahead of them
 
 func _init(path : String) -> void:
 	self.path = path
@@ -80,12 +81,24 @@ func run(features : PackedStringArray) -> bool:
 		_shuffle_toplevel()
 	
 	_strip_code()
-	
+
+	if _Settings.current.encode_strings:
+		_encode_strings()
+
 	return true
 
 
 func generate_source_code() -> String:
-	generated_code = tokenizer.generate_source_code()
+	if _encoded_strings.is_empty():
+		generated_code = tokenizer.generate_source_code()
+		return generated_code
+
+	# A string is encoded as late as this, since it may have the name of a symbol for its value
+	var code : PackedStringArray = []
+	for line in tokenizer.get_output_lines():
+		for token in line.tokens:
+			code.append(_get_encoded_string(token) if _encoded_strings.has(token) else token.get_value())
+	generated_code = "".join(code)
 	return generated_code
 
 
@@ -738,6 +751,157 @@ func _strip_statement(lines : Array[Tokenizer.Line], l : int) -> void:
 		line.tokens = kept
 	else:
 		lines.remove_at(l)
+
+
+# Picks the strings that get exported encoded: all but the ones GDScript wants as constants,
+# which a call that decodes a string is not
+func _encode_strings() -> void:
+	var lines : Array[Tokenizer.Line] = tokenizer.get_output_lines()
+	var blocks : Array = [] # The statements the line is nested in: their indentation, and whether they are a match
+	var statement_line : int = 0
+	var depth : int = 0
+	var constant : bool = false
+	var after_annotation : bool = false
+	for l in lines.size():
+		var tokens : Array[Token] = lines[l].tokens
+		var first : int = _find_statement(tokens, 0)
+		if first == -1:
+			continue
+
+		if depth == 0:
+			# A statement begins on this line
+			statement_line = l
+			var indentation : int = lines[l].get_indentation()
+			while blocks and blocks.back()[0] >= indentation:
+				blocks.pop_back()
+			var pattern : bool = !blocks.is_empty() and blocks.back()[1]
+			blocks.append([indentation, tokens[first].is_keyword("match")])
+			constant = pattern or after_annotation or _takes_constants(tokens, first)
+			# Annotations on a line of their own are for the statement after them
+			after_annotation = tokens[first].is_annotation()
+			for token in tokens:
+				if token.is_keyword():
+					after_annotation = false
+					break
+
+		# A line inside the brackets of a statement may be one of a lambda, with statements of its own
+		var line_constant : bool = constant
+		if depth > 0 and !constant:
+			line_constant = _takes_constants(tokens, first) or _is_nested_pattern(lines, statement_line, l)
+
+		for i in range(first, tokens.size()):
+			var token : Token = tokens[i]
+			if token.is_punctuator():
+				if "([{".contains(token.get_value()):
+					depth += 1
+				elif ")]}".contains(token.get_value()):
+					depth = maxi(depth - 1, 0)
+				elif token.is_punctuator(";") and depth == 0:
+					# Another statement on the same line
+					var next : int = _find_statement(tokens, i + 1)
+					constant = next != -1 and _takes_constants(tokens, next)
+					line_constant = constant
+			elif token.type == Token.Type.STRING_LITERAL and !line_constant and _can_encode_string(tokens, i):
+				_encoded_strings[token] = tokens[i - 1].is_of_type(Token.Type.KEYWORD | Token.Type.SYMBOL | Token.Type.LITERAL | Token.Type.NUMBER_LITERAL) if i > 0 else false
+
+
+# The first token from the given one on which is part of a statement, -1 if there is none
+func _find_statement(tokens : Array[Token], from : int) -> int:
+	for i in range(from, tokens.size()):
+		if !tokens[i].is_of_type(Token.Type.INDENTATION | Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.LINE_BREAK):
+			return i
+	return -1
+
+
+# Whether the statement which begins with the given token is one whose strings have to be constants,
+# or one where it is not worth finding out which of them have to be
+func _takes_constants(tokens : Array[Token], first : int) -> bool:
+	if tokens[first].is_annotation():
+		return true
+	var i : int = first
+	while i < tokens.size() and (tokens[i].is_keyword("static") or tokens[i].is_whitespace()):
+		i += 1
+	return i < tokens.size() and tokens[i].is_keyword() and tokens[i].get_value() in ["const", "extends", "class_name", "class", "enum", "signal", "func", "assert"]
+
+
+# Whether a line inside the brackets of a statement is a pattern of a match:
+# the line it is nested in is the one before it that is indented less
+func _is_nested_pattern(lines : Array[Tokenizer.Line], statement_line : int, l : int) -> bool:
+	var indentation : int = lines[l].get_indentation()
+	for i in range(l - 1, statement_line, -1):
+		var first : int = _find_statement(lines[i].tokens, 0)
+		if first != -1 and lines[i].get_indentation() < indentation:
+			return lines[i].tokens[first].is_keyword("match")
+	return false
+
+
+# Whether the string is one that can be put together when the game runs
+func _can_encode_string(tokens : Array[Token], i : int) -> bool:
+	var token : Token = tokens[i]
+	if !(token.decorator in ["\"", "'"]) or token.get_value(false).contains("\n"):
+		return false
+	if i == 0:
+		return true
+
+	# &"StringName", ^"NodePath" and r"raw string"
+	if tokens[i - 1].is_operator("&") or tokens[i - 1].is_operator("^") or tokens[i - 1].is_symbol("r"):
+		return false
+
+	# preload("path")
+	var before : int = i - 1
+	while before > 0 and tokens[before].is_whitespace():
+		before -= 1
+	if tokens[before].is_punctuator("("):
+		before -= 1
+		while before > 0 and tokens[before].is_whitespace():
+			before -= 1
+		if before >= 0 and tokens[before].is_keyword("preload"):
+			return false
+
+	return true
+
+
+# The code that takes the place of a string which gets exported encoded
+func _get_encoded_string(token : Token) -> String:
+	var text = _get_string_text(token.get_value(false))
+	if text == null or text.is_empty():
+		return token.get_value()
+	var encoded : String = Marshalls.utf8_to_base64(text)
+	if Marshalls.base64_to_utf8(encoded) != text:
+		return token.get_value()
+	return (" " if _encoded_strings[token] else "") + "Marshalls.base64_to_utf8(\"" + encoded + "\")"
+
+
+# The text a string stands for as it is written in a script, or null if it has
+# something in it this does not know how to read
+func _get_string_text(written : String):
+	const ESCAPES : Dictionary = { "\\": 92, "\"": 34, "'": 39, "n": 10, "t": 9, "r": 13, "a": 7, "b": 8, "f": 12, "v": 11 }
+	var text : PackedStringArray = []
+	var i : int = 0
+	while i < written.length():
+		var from : int = i
+		while i < written.length() and written[i] != "\\":
+			i += 1
+		text.append(written.substr(from, i - from))
+		if i == written.length():
+			break
+
+		# An escape sequence
+		var escape : String = written.substr(i + 1, 1)
+		i += 2
+		if ESCAPES.has(escape):
+			text.append(char(ESCAPES[escape]))
+		elif escape == "u" or escape == "U":
+			var digits : int = 4 if escape == "u" else 6
+			var hex : String = written.substr(i, digits)
+			var code : int = hex.hex_to_int() if hex.length() == digits and hex.is_valid_hex_number() else 0
+			if code <= 0 or code > 0x10ffff or (code >= 0xd800 and code <= 0xdfff):
+				return null
+			text.append(char(code))
+			i += digits
+		else:
+			return null
+	return "".join(text)
 
 
 func _is_exclude_required(src : String) -> bool:
