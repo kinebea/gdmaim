@@ -26,4 +26,6 @@ bones/0/rotation = Quaternion(0, 0, 0, 1)
 bones/0/scale = Vector3(1, 1, 1)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1368599939]
-libraries/ = SubResource("AnimationLibrary_u2ip5")
+libraries = {
+&"": SubResource("AnimationLibrary_u2ip5")
+}

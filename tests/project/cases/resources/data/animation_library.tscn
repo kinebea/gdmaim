@@ -7,4 +7,6 @@
 script = ExtResource("1_8wlys")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1307787657]
-libraries/ = ExtResource("2_r64u4")
+libraries = {
+&"": ExtResource("2_r64u4")
+}

@@ -39,4 +39,6 @@ _data = {
 script = ExtResource("1_ho4py")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=311132746]
-libraries/ = SubResource("AnimationLibrary_au4wc")
+libraries = {
+&"": SubResource("AnimationLibrary_au4wc")
+}
