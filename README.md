@@ -99,7 +99,7 @@ To configure this plugin, open the GDMaim dock on the bottom left, right next to
 
 `Strip Editor Annotations`: If enabled, annotations used exclusively by the editor will be removed, like `@export_group`, `@icon` and `@warning_ignore`. `@export` on a variable is kept, because it also decides what `duplicate()`, local-to-scene resources and `ResourceSaver` copy.
 
-`Strip Static Typing`: Removes the types of variables, parameters and return values. Exported variables keep their type, which `@export` relies on.
+`Strip Static Typing`: Removes the types of variables, parameters and return values. Exported variables keep their type, which `@export` relies on. A whole number that a `float` is declared with is written as one, like `var speed=2.0` for `var speed : float = 2`. Without its type, the variable does not turn whole numbers it is given later on into a `float` any more.
 
 `Strip Sequential New Lines`: If enabled, arrays, dictionaries and argument lists that are spread over several lines are put on one line.
 

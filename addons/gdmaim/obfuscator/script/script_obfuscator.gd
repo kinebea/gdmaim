@@ -237,6 +237,7 @@ func _strip_variable_type(tokens : Array[Token], name_idx : int, is_var : bool, 
 		elif !(is_simple and (type_name == "Variant" or type_name == "Object" or ClassDB.class_exists(type_name))) and !_symbol_table.is_class_name(type_name):
 			return # Might be an enum, which starts out as 0, so this type stays
 
+	_keep_float(tokens, colon, end)
 	for i in range(colon, end):
 		removed[tokens[i]] = true
 
@@ -277,6 +278,7 @@ func _strip_signature_types(tokens : Array[Token], i : int, removed : Dictionary
 			if end == -1:
 				i += 2
 			else:
+				_keep_float(tokens, i + 1, end)
 				for j in range(i + 1, end):
 					removed[tokens[j]] = true
 				i = end
@@ -292,6 +294,29 @@ func _strip_signature_types(tokens : Array[Token], i : int, removed : Dictionary
 			i = end
 
 	return i
+
+
+# A whole number that is given to a float is a float, which it has to be without the type as well.
+# The type goes from the colon at the given index up to the end, where the value may follow
+func _keep_float(tokens : Array[Token], colon : int, end : int) -> void:
+	if end != colon + 2 or !tokens[colon + 1].is_symbol("float") or end >= tokens.size() or !tokens[end].is_operator("="):
+		return
+	var i : int = end + 1
+	if i < tokens.size() and tokens[i].is_operator("-"):
+		i += 1
+	if i >= tokens.size() or !tokens[i].is_number_literal():
+		return
+	# The number has to be all there is to the value
+	if i + 1 < tokens.size() and !tokens[i + 1].is_line_break() and !(tokens[i + 1].is_punctuator() and ",):;".contains(tokens[i + 1].get_value())):
+		return
+	
+	var number : String = tokens[i].get_value().replace("_", "")
+	if number.begins_with("0x"):
+		number = str(number.hex_to_int())
+	elif number.begins_with("0b"):
+		number = str(number.bin_to_int())
+	if number.is_valid_int():
+		tokens[i].set_value(number + ".0")
 
 
 # Returns the index after the type that begins at the given index, like Array[int] or Tween.EaseType.

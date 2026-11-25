@@ -7,7 +7,14 @@ signal st_hit(amount : int, source : String)
 
 enum StMode { ST_IDLE, ST_BUSY }
 
+const ST_WHOLE : float = 3
+
 @export var st_exported : int = 5
+var st_below : float = -3
+var st_hex : float = 0x11
+var st_float : float = 2.5
+var st_sum : float = 1 + 2.5
+static var st_static : float = 1_001
 var st_mode : StMode
 var st_count : int
 var st_ease : Tween.EaseType = Tween.EASE_OUT
@@ -28,6 +35,10 @@ func dotted(transition : Tween.TransitionType = Tween.TRANS_SINE) -> Tween.Trans
 func mixed(first : int, second, third : bool = false, offset : Vector2 = Vector2(st_origin.x, 0.0)) -> float:
 	return 0.0 if third else first + second + offset.x
 
+func halved(amount : float = 5) -> float:
+	var parts : float = 2
+	return amount / int(parts)
+
 func one_line(amount : int) -> int: return amount * 2
 
 func inline_bodies(limit : int) -> int:
@@ -47,6 +58,11 @@ func run_case() -> String:
 		return "typed and untyped parameters"
 	if one_line(4) != 8 or inline_bodies(4) != 32 or inline_bodies(2) != -18:
 		return "body on the line of its statement"
+	# A whole number where a float is declared is a float
+	if ST_WHOLE / 2 != 1.5 or st_below / 2 != -1.5 or st_hex / 2 != 8.5 or st_static / 2 != 500.5 or halved() != 2.5:
+		return "whole number as a float: %s %s %s %s %s" % [ST_WHOLE / 2, st_below / 2, st_hex / 2, st_static / 2, halved()]
+	if st_float != 2.5 or st_sum != 3.5:
+		return "value of a float"
 	st_value = 50
 	if st_value != 10:
 		return "setter on one line"
