@@ -1,6 +1,6 @@
 class_name CnBase extends RefCounted
 
-## Used by cases/parser/class_names.gd
+## Used by cases/parser/class_names.gd, and td_make() by cases/parser/typed_dictionary.gd
 
 const CN_LIMIT : int = 3
 
@@ -13,3 +13,6 @@ static func cn_make(size : int) -> CnBase:
 
 func cn_describe() -> String:
 	return "base" + str(cn_size)
+
+static func td_make() -> Dictionary:
+	return { "td_health": 70 }

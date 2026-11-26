@@ -145,11 +145,19 @@ func resolve_symbol_paths() -> void:
 
 
 # Whether the symbol is of the type Dictionary, or is set to what a function returns that is declared
-# to return one. That function is looked for from where the symbol is used
+# to return one. That function is looked for from where the symbol is used, or among the static
+# functions of the class or the autoload it is called on
 func _is_dictionary(symbol : Symbol, symbol_path : SymbolPath) -> bool:
 	var type : String = symbol.type
 	if type.begins_with(RETURNED_BY):
-		var function : Symbol = _search_symbol(symbol_path.get_ast(), type.trim_prefix(RETURNED_BY), true) if symbol_path.get_ast() else null
+		var name : String = type.trim_prefix(RETURNED_BY)
+		var function : Symbol = null
+		if name.contains("."):
+			# A static function of a named class, or a function of an autoload, which it has among its children
+			var owner : Symbol = find_global_symbol(name.get_slice(".", 0))
+			function = owner.children.get(name.get_slice(".", 1)) if owner else null
+		elif symbol_path.get_ast():
+			function = _search_symbol(symbol_path.get_ast(), name, true)
 		type = function.type if function else ""
 	return type == "Dictionary" or type.begins_with("Dictionary.")
 

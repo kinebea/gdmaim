@@ -37,6 +37,15 @@ func run_case() -> String:
 	var inferred := { "td_health": 60 }
 	if inferred.td_health != 60:
 		return "a variable given a dictionary with :="
+	var made := CnBase.td_make()
+	if made.td_health != 70:
+		return "a variable given what a static function of another class returns: %s" % made
+	var made_object := CnBase.cn_make(80)
+	if made_object.cn_size != 80:
+		return "a variable given an object a static function of another class returns"
+	var settings := Boot.boot_settings()
+	if settings.boot_level != 90:
+		return "a variable given what a function of an autoload returns: %s" % settings
 	# Not a dictionary, whose member is renamed along with the one it is
 	var object := td_object()
 	if object.td_health != 40:

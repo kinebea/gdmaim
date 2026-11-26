@@ -922,8 +922,14 @@ func _parse_var_type(ast : AST.ASTNode) -> String:
 
 	# A variable set to what a function returns has the type the function is declared with, which
 	# is looked up once every symbol is known. The call has to be all there is to the value
-	if value and value.is_symbol() and _tokenizer.peek(assign).is_operator("=") and _tokenizer.peek(assign + 2) and _tokenizer.peek(assign + 2).is_punctuator("("):
-		var i : int = assign + 3
+	# That may be a static function of a named class, as in ClassName.function()
+	var function : String = value.get_value() if value and value.is_symbol() else ""
+	var open : int = assign + 2
+	if function and _tokenizer.peek(open) and _tokenizer.peek(open).is_punctuator(".") and _tokenizer.peek(open + 1) and _tokenizer.peek(open + 1).is_symbol():
+		function += "." + _tokenizer.peek(open + 1).get_value()
+		open += 2
+	if function and _tokenizer.peek(assign).is_operator("=") and _tokenizer.peek(open) and _tokenizer.peek(open).is_punctuator("("):
+		var i : int = open + 1
 		var depth : int = 1
 		while depth > 0 and _tokenizer.peek(i):
 			if _tokenizer.peek(i).is_punctuator("("):
@@ -933,7 +939,7 @@ func _parse_var_type(ast : AST.ASTNode) -> String:
 			i += 1
 		var after : Token = _tokenizer.peek(i)
 		if depth == 0 and (!after or after.is_line_break() or after.is_comment() or after.type == Token.Type.STATEMENT_BREAK):
-			return SymbolTable.RETURNED_BY + value.get_value()
+			return SymbolTable.RETURNED_BY + function
 
 	return ""
 

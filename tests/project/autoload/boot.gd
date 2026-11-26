@@ -18,6 +18,9 @@ func boot_load(path : String) -> int:
 	var boot_level : int = path.length()
 	return boot_level
 
+func boot_settings() -> Dictionary:
+	return { "boot_level": 90 }
+
 func boot_helper_entered() -> bool:
 	var helper := BootHelper.new()
 	add_child(helper)
