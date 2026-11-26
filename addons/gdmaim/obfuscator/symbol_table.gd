@@ -6,6 +6,9 @@ const _Settings := preload("../settings.gd")
 const StringRef := preload("string_ref.gd")
 const AST := preload("script/parser/ast.gd")
 
+# The type of a variable set to what a function returns, ahead of the name of that function
+const RETURNED_BY : String = "returned by "
+
 var settings : _Settings
 
 var _seed : int
@@ -130,7 +133,7 @@ func resolve_symbol_paths() -> void:
 			if cur:
 				symbol.link(cur)
 				# The keys of a dictionary are strings and no members, also those of a Dictionary[K, V]
-				if cur.type == "Dictionary" or cur.type.begins_with("Dictionary."):
+				if _is_dictionary(cur, symbol_path):
 					break
 			else:
 				log += "?"
@@ -139,6 +142,16 @@ func resolve_symbol_paths() -> void:
 		
 		_Logger.swap(symbol_path.get_log())
 		_Logger.write(log)
+
+
+# Whether the symbol is of the type Dictionary, or is set to what a function returns that is declared
+# to return one. That function is looked for from where the symbol is used
+func _is_dictionary(symbol : Symbol, symbol_path : SymbolPath) -> bool:
+	var type : String = symbol.type
+	if type.begins_with(RETURNED_BY):
+		var function : Symbol = _search_symbol(symbol_path.get_ast(), type.trim_prefix(RETURNED_BY), true) if symbol_path.get_ast() else null
+		type = function.type if function else ""
+	return type == "Dictionary" or type.begins_with("Dictionary.")
 
 
 func obfuscate_symbols() -> void:
