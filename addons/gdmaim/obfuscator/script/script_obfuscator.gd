@@ -107,6 +107,7 @@ func run(features : PackedStringArray) -> bool:
 
 
 func generate_source_code() -> String:
+	_keep_signs_apart()
 	if _encoded_strings.is_empty():
 		generated_code = tokenizer.generate_source_code()
 		return generated_code
@@ -118,6 +119,27 @@ func generate_source_code() -> String:
 			code.append(_get_encoded_string(token) if _encoded_strings.has(token) else token.get_value())
 	generated_code = "".join(code)
 	return generated_code
+
+
+# Inside brackets Godot takes a + or - that begins a line for the sign of a number right behind it,
+# which leaves two values in a row, as in "x\n+2": a space after the operator keeps it one
+func _keep_signs_apart() -> void:
+	for line in tokenizer.get_output_lines():
+		var begins : bool = true # Nothing but spacing since the line began
+		var i : int = 0
+		while i < line.tokens.size():
+			var token : Token = line.tokens[i]
+			i += 1
+			if token.is_of_type(Token.Type.INDENTATION | Token.Type.WHITESPACE | Token.Type.COMMENT):
+				continue
+			var next : Token = line.tokens[i] if i < line.tokens.size() else null
+			if begins and (token.is_operator("+") or token.is_operator("-")) and next and _is_number(next.get_value()):
+				line.insert_token(i, Token.new(Token.Type.WHITESPACE, " ", -1, token.line))
+			begins = token.is_line_break() or token.is_punctuator("\n")
+
+
+static func _is_number(value : String) -> bool:
+	return !value.is_empty() and (value[0].is_valid_int() or (value[0] == "." and value.length() > 1 and value[1].is_valid_int()))
 
 
 func generate_line_mappings() -> Array[Dictionary]:
