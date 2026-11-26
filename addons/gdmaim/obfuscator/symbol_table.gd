@@ -109,6 +109,28 @@ func find_export_symbol(symbol : String) -> Symbol:
 	return _export_symbols.get(symbol)
 
 
+# The names of members that the method of String picks with the argument, but no longer once renamed
+func find_names_lost_by(method : String, argument : String) -> PackedStringArray:
+	var lost : PackedStringArray
+	for name : String in _global_symbols:
+		var renamed : String = _global_symbols[name].get_name()
+		if renamed != name and _picks(name, method, argument) and !_picks(renamed, method, argument):
+			lost.append(name)
+	lost.sort()
+	return lost
+
+
+static func _picks(name : String, method : String, argument : String) -> bool:
+	match method:
+		"begins_with": return name.begins_with(argument)
+		"ends_with": return name.ends_with(argument)
+		"contains": return name.contains(argument)
+		"containsn": return name.containsn(argument)
+		"match": return name.match(argument)
+		"matchn": return name.matchn(argument)
+	return false
+
+
 func rename_symbol(symbol : Symbol, target : String) -> void:
 	#if _locked_symbols.has(symbol.get_name()): #NOTE obfuscation does its own check
 		#return

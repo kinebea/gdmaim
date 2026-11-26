@@ -19,6 +19,13 @@ const NAME_ARGUMENTS : Dictionary = {
 }
 # The ones a Dictionary has as well, which only count for the script itself: get("name") or self.get("name")
 const NAME_ARGUMENTS_OF_SELF : PackedStringArray = ["get", "set"]
+# The functions which give the names of members, as they are once renamed
+const NAME_LISTS : PackedStringArray = [
+	"get_method_list", "get_script_method_list", "get_property_list", "get_script_property_list",
+	"get_signal_list", "get_script_signal_list", "get_script_constant_map",
+]
+# The methods of String which pick a name by a part of it
+const NAME_PATTERNS : PackedStringArray = ["begins_with", "ends_with", "contains", "containsn", "match", "matchn"]
 
 var path : String
 var source_code : String
@@ -490,12 +497,7 @@ func _string_param_obfuscation(token : Token, next_token : Token) -> void:
 ## call_deferred("my_method"): the string stays as it is, unless a hint has it renamed as well.
 ## Each one as [line of source, name]. Takes the output of run()
 func find_unrenamed_names() -> Array:
-	var tokens : Array[Token] = []
-	for line in tokenizer.get_output_lines():
-		for token in line.tokens:
-			if !token.is_of_type(Token.Type.INDENTATION | Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.LINE_BREAK | Token.Type.STATEMENT_BREAK):
-				tokens.append(token)
-
+	var tokens : Array[Token] = _get_code_tokens()
 	var found : Array = []
 	for i in tokens.size() - 1:
 		var token : Token = tokens[i]
@@ -531,6 +533,43 @@ func find_unrenamed_names() -> Array:
 		if symbol and symbol.get_name() != name:
 			found.append([tokens[at].source_line, name])
 	return found
+
+
+# A function which reads the names of members, as from get_script_method_list(), and picks some by a part
+# of them, as with begins_with("read_"), does not find those which get renamed. Each call that picks
+# what gets renamed, as [line of source, the method, its argument, the function with the names, the names]
+func find_names_lost_by_pattern() -> Array:
+	var tokens : Array[Token] = _get_code_tokens()
+	var found : Array = []
+	var list : String # A function of NAME_LISTS that the function the tokens are in calls
+	var picks : Array # The calls of NAME_PATTERNS in that function
+	for i in tokens.size() + 1:
+		# A function, and not a lambda, begins, or the script ends
+		if i == tokens.size() or (tokens[i].is_keyword("func") and i + 1 < tokens.size() and tokens[i + 1].is_symbol()):
+			for pick in (picks if list else []):
+				var lost : PackedStringArray = _symbol_table.find_names_lost_by(pick[1], pick[2])
+				if lost:
+					found.append(pick + [list, lost])
+			list = ""
+			picks = []
+			continue
+		var token : Token = tokens[i]
+		if !token.is_symbol() or i + 1 >= tokens.size() or !tokens[i + 1].is_punctuator("("):
+			continue
+		if NAME_LISTS.has(token.get_value()):
+			list = list if list else token.get_value()
+		elif NAME_PATTERNS.has(token.get_value()) and i > 0 and tokens[i - 1].is_punctuator(".") and i + 3 < tokens.size() and tokens[i + 2].is_string_literal() and (tokens[i + 3].is_punctuator(")") or tokens[i + 3].is_punctuator(",")):
+			picks.append([tokens[i + 2].source_line, token.get_value(), tokens[i + 2].get_value(false)])
+	return found
+
+
+func _get_code_tokens() -> Array[Token]:
+	var tokens : Array[Token] = []
+	for line in tokenizer.get_output_lines():
+		for token in line.tokens:
+			if !token.is_of_type(Token.Type.INDENTATION | Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.LINE_BREAK | Token.Type.STATEMENT_BREAK):
+				tokens.append(token)
+	return tokens
 
 
 func _func_feature_filter(token : Token, line : Tokenizer.Line, feature : String, features : PackedStringArray) -> void:

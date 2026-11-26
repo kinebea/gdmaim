@@ -7,6 +7,10 @@ extends Node
 ## How the project was exported is told by the feature tags of the configuration, see tests/README.md.
 
 func _ready() -> void:
+	if OS.has_feature("crash"):
+		# Errors for the log, which the configurations with this tag have translated. They come first,
+		# so that the line they are on stays the same whatever cases there are
+		load("res://broken/at_runtime.gd").new().start_engine()
 	var cases : Array = [
 		"tokenizer/operators",
 		"tokenizer/numbers",
@@ -62,10 +66,8 @@ func _ready() -> void:
 		"export/addon_left_out",
 		"export/excluded_paths",
 		"export/names_in_strings",
+		"export/names_by_pattern",
 	]
-	if OS.has_feature("crash"):
-		# Errors for the log, which the configurations with this tag have translated
-		load("res://broken/at_runtime.gd").new().start_engine()
 	for case_name in cases:
 		var result : String = await run(case_name)
 		print("[CASE] ", "PASS" if result == "ok" else "FAIL", " | ", case_name, " | ", result)

@@ -276,6 +276,12 @@ GDMaim - res://player.gd:12: "on_hit" is a name that gets renamed, but not in th
 
 A string that is put together, or that is kept in a variable, is not looked at. Neither is a call by a name of Godot, like `call_deferred("queue_free")`, which is not renamed.
 
+It also warns about a function that reads the names of members from `get_method_list()`, `get_script_method_list()`, `get_property_list()`, `get_script_property_list()`, `get_signal_list()`, `get_script_signal_list()` or `get_script_constant_map()`, and picks some by a part of their name with `begins_with()`, `ends_with()`, `contains()`, `containsn()`, `match()` or `matchn()`, when that part is in a name that gets renamed. The warning goes away once those names are locked:
+
+```
+GDMaim - res://net/router.gd:9: begins_with("read_") picks among the names that get_script_method_list() gives, which no longer has "read_packet_from_bytes" once renamed. Add ##LOCK_SYMBOLS where they are declared to keep their names.
+```
+
 `##OBFUSCATE_STRING_PARAMETERS arg_name`: Must be at the beginning of a line and before a function declaration. For all specified _string_ parameters, obfuscate the arguments when the function is called.
 
 ```js

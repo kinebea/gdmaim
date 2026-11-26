@@ -698,6 +698,11 @@ func _obfuscate_script(path : String) -> String:
 		var hint : String = _Settings.current.preprocessor_prefix + PreprocessorHints.OBFUSCATE_STRINGS
 		for found in obfuscator.find_unrenamed_names():
 			push_warning("GDMaim - %s:%d: \"%s\" is a name that gets renamed, but not in this string. Add %s to the line to have the string renamed as well." % [path, found[0] + 1, found[1], hint])
+		var lock : String = _Settings.current.preprocessor_prefix + PreprocessorHints.LOCK_SYMBOLS
+		for found in obfuscator.find_names_lost_by_pattern():
+			var names : PackedStringArray = found[4]
+			var more : String = " and %d more" % (names.size() - 1) if names.size() > 1 else ""
+			push_warning("GDMaim - %s:%d: %s(\"%s\") picks among the names that %s() gives, which no longer has \"%s\"%s once renamed. Add %s where they are declared to keep their names." % [path, found[0] + 1, found[1], found[2], found[3], names[0], more, lock])
 
 	# Inject startup code into the first autoload
 	if path == _inject_autoload:
