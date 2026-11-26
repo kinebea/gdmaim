@@ -56,7 +56,8 @@ func _find_dictionary_keys() -> void:
 	var prev : Token = null
 	var prev_prev : Token = null
 	for token : Token in _tokenizer.get_tokens():
-		if token.type & SKIPPED:
+		# A line break inside brackets comes as the punctuator "\n"
+		if token.type & SKIPPED or token.is_punctuator("\n"):
 			continue
 
 		if key and token.is_operator("="):
