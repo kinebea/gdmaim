@@ -464,9 +464,13 @@ func _read_multi_string() -> void:
 	
 	# Append empty padding lines to maintain 1:1 line counting. They hold nothing, as
 	# indentation in them would end up in front of whatever follows the string.
+	var string_line : Line = _output.back()
 	for i in str.count("\n"):
 		line_count += 1
 		_output.append(Line.new())
+	# What follows the string on its last line goes on with the statement of the line it begins on
+	if !has_newline and str.count("\n") > 0:
+		_output.back().continued_from = string_line
 
 	# Ensure we force a newline after a bare multiline string
 	if has_newline:
@@ -723,6 +727,7 @@ func _add_statement_break() -> void:
 class Line:
 	var tokens : Array[Token]
 	var hints : Dictionary
+	var continued_from : Line # The line a multi-line string begins on, when what follows the string is on this one
 	var indentation : int
 	
 	func _init(tokens : Array[Token] = []) -> void:
@@ -761,11 +766,20 @@ class Line:
 	func get_hint_args(hint : String) -> String:
 		return hints.get(hint, "")
 	
+	# The indentation of the line, or of the one whose statement it goes on with
 	func get_indentation() -> int:
+		if continued_from:
+			return continued_from.get_indentation()
+		return _get_own_indentation()
+
+	func _get_own_indentation() -> int:
 		return 0 if !tokens or tokens[0].type != Token.Type.INDENTATION else tokens[0].get_value().length()
-	
+
+	# Whether a statement begins on the line, which one that goes on with another does not
 	func has_statement() -> bool:
-		var t : int = 0 if get_indentation() == 0 else 1
+		if continued_from:
+			return false
+		var t : int = 0 if _get_own_indentation() == 0 else 1
 		return tokens.size() >= t + 1 and !tokens[t].is_comment() and !tokens[t].is_line_break()
 	
 	func has_token_value(value : String) -> bool:
