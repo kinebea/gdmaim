@@ -79,6 +79,13 @@ for config in $configs; do
 	while IFS= read -r setting; do
 		[ -n "$setting" ] && printf '\n[%s]\n\n%s\n' "${setting%%/*}" "${setting#*/}" >> project.godot
 	done <<< "$(options "$config" project_setting)"
+	# The files of Godot are in "godot" for a project that does not hide them, the ones imported once
+	rm -rf godot
+	class_cache=".godot/global_script_class_cache.cfg"
+	if grep -q '^config/use_hidden_project_data_directory=false' project.godot; then
+		cp -r .godot godot
+		class_cache="godot/global_script_class_cache.cfg"
+	fi
 	features="$(option "$config" features)"
 	script_mode="$(option "$config" script_export_mode)"
 	exclude="$(option "$config" exclude_filter)"

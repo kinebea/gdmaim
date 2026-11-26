@@ -14,8 +14,8 @@ const Token := preload("obfuscator/script/tokenizer/token.gd")
 const Binash = preload("util/binash.gd")
 
 const SOURCE_MAP_EXT : String = ".gd.map"
-const GODOT_CLASS_CACHE_PATH : String = "res://.godot/global_script_class_cache.cfg"
-const GODOT_EXTENSION_LIST_PATH : String = "res://.godot/extension_list.cfg"
+const GODOT_CLASS_CACHE_FILE : String = "global_script_class_cache.cfg"
+const GODOT_EXTENSION_LIST_FILE : String = "extension_list.cfg"
 
 var settings : _Settings
 
@@ -56,6 +56,11 @@ func _get_addon_path() -> String:
 func _get_name() -> String:
 	return "gdmaim"
 
+# A file Godot keeps for the project, in ".godot", or in "godot" for a project that does not hide that folder
+static func _godot_data_path(file : String) -> String:
+	var hidden : bool = ProjectSettings.get_setting("application/config/use_hidden_project_data_directory", true)
+	return "res://" + (".godot" if hidden else "godot") + "/" + file
+
 func _initialize_third_party() -> void:
 	#GDShedor
 	if Engine.has_singleton(&"GDShedor"):
@@ -82,12 +87,13 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	# The addon is not part of the game however it gets exported, so the extension it brings
 	# along must not be in the list of extensions the game loads when it starts
 	_godot_files = GodotFiles.new()
-	var extension_list_src := FileAccess.get_file_as_string(GODOT_EXTENSION_LIST_PATH)
+	var extension_list_path : String = _godot_data_path(GODOT_EXTENSION_LIST_FILE)
+	var extension_list_src := FileAccess.get_file_as_string(extension_list_path)
 	var extension_list : String
 	for line in extension_list_src.split("\n", false):
 		if not line.ends_with("gdbc.gdextension"):
 			extension_list += line + "\n"
-	_godot_files.edit(GODOT_EXTENSION_LIST_PATH, extension_list_src.to_utf8_buffer(), extension_list.to_utf8_buffer())
+	_godot_files.edit(extension_list_path, extension_list_src.to_utf8_buffer(), extension_list.to_utf8_buffer())
 	
 	if !_enabled:
 		_godot_files.flush()
@@ -243,7 +249,8 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	
 	# Modify class cache
 	var class_cache := ConfigFile.new()
-	var class_cache_src : PackedByteArray = FileAccess.get_file_as_bytes(GODOT_CLASS_CACHE_PATH)
+	var class_cache_path : String = _godot_data_path(GODOT_CLASS_CACHE_FILE)
+	var class_cache_src : PackedByteArray = FileAccess.get_file_as_bytes(class_cache_path)
 	class_cache.parse(class_cache_src.get_string_from_utf8())
 	var classes : Array[Dictionary] = []
 	classes.assign(class_cache.get_value("", "list"))
@@ -253,7 +260,7 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 		if _class_symbols.has(class_data.base):
 			class_data.base = StringName(_class_symbols[class_data.base].get_name())
 	class_cache.set_value("", "list", classes)
-	_godot_files.edit(GODOT_CLASS_CACHE_PATH, class_cache_src, class_cache.encode_to_text().to_utf8_buffer())
+	_godot_files.edit(class_cache_path, class_cache_src, class_cache.encode_to_text().to_utf8_buffer())
 	
 	# Apply changes made to Godot's internal export files
 	_godot_files.flush()
