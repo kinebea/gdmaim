@@ -6,6 +6,7 @@ const _Logger := preload("logger.gd")
 const GodotFiles := preload("godot_files.gd")
 const ScriptObfuscator := preload("obfuscator/script/script_obfuscator.gd")
 const Inliner := preload("obfuscator/script/inliner.gd")
+const PreprocessorHints := preload("obfuscator/script/preprocessor_hints.gd")
 const ResourceObfuscator := preload("obfuscator/resource/resource_obfuscator.gd")
 const SymbolTable := preload("obfuscator/symbol_table.gd")
 const Tokenizer := preload("obfuscator/script/tokenizer/tokenizer.gd")
@@ -683,7 +684,11 @@ func _obfuscate_script(path : String) -> String:
 	_Logger.write("\n---------- " + " Obfuscating script " + path + " ----------")
 	
 	obfuscator.run(_features)
-	
+	if _Settings.current.obfuscation_enabled:
+		var hint : String = _Settings.current.preprocessor_prefix + PreprocessorHints.OBFUSCATE_STRINGS
+		for found in obfuscator.find_unrenamed_names():
+			push_warning("GDMaim - %s:%d: \"%s\" is a name that gets renamed, but not in this string. Add %s to the line to have the string renamed as well." % [path, found[0] + 1, found[1], hint])
+
 	# Inject startup code into the first autoload
 	if path == _inject_autoload:
 		_inject_source_map_name(obfuscator)

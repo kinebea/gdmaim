@@ -59,6 +59,7 @@ func _ready() -> void:
 		"export/csv_files",
 		"export/addon_left_out",
 		"export/excluded_paths",
+		"export/names_in_strings",
 	]
 	if OS.has_feature("crash"):
 		# Errors for the log, which the configurations with this tag have translated

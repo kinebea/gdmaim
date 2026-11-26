@@ -17,7 +17,7 @@ It looks for the editor as `godot`. Set `GODOT` to use another one:
 GODOT=/path/to/godot tests/run.sh
 ```
 
-A run takes three to four minutes and ends with `All 974 checks passed.` or with the cases that failed:
+A run takes three to four minutes and ends with `All 1000 checks passed.` or with the cases that failed:
 
 ```
 == default
@@ -54,7 +54,7 @@ their default value.
 | Configuration | What it exports with |
 | --- | --- |
 | `plain` | No GDMaim at all (feature tag `no_gdmaim`). A case that fails here is wrong itself. |
-| `default` | The settings GDMaim starts out with. |
+| `default` | The settings GDMaim starts out with. The export has to warn about the strings of `export/names_in_strings.gd` that name something which gets renamed, and about those alone. |
 | `other_seed` | The same with another seed, which names and shuffles everything differently. |
 | `strip_typing` | Strip Static Typing turned on. |
 | `rename_only` | Only renaming: no post-processing, no shuffling, no source map name in the game. Check Exported Scripts is on and has nothing to report. |

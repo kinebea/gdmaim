@@ -268,6 +268,14 @@ var __pQFC : int
 set("__pQFC", 1) ##OBFUSCATE_STRINGS
 ```
 
+When it exports, GDMaim warns about a string that names something which gets renamed, where the string is given as a name to `call()`, `call_deferred()`, `callv()`, `has_method()`, `connect()`, `disconnect()`, `is_connected()`, `emit_signal()`, `has_signal()`, `set_deferred()`, `rpc()`, `rpc_id()`, `tween_property()`, `Callable()` or `Signal()`, or to `get()` and `set()` of the script itself. The warning names the script and the line:
+
+```
+GDMaim - res://player.gd:12: "on_hit" is a name that gets renamed, but not in this string. Add ##OBFUSCATE_STRINGS to the line to have the string renamed as well.
+```
+
+A string that is put together, or that is kept in a variable, is not looked at. Neither is a call by a name of Godot, like `call_deferred("queue_free")`, which is not renamed.
+
 `##OBFUSCATE_STRING_PARAMETERS arg_name`: Must be at the beginning of a line and before a function declaration. For all specified _string_ parameters, obfuscate the arguments when the function is called.
 
 ```js

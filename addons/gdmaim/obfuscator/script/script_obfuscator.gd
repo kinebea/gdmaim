@@ -11,6 +11,15 @@ const Tokenizer := preload("tokenizer/tokenizer.gd")
 const AST := preload("parser/ast.gd")
 const Builtins = preload("../../builtins.gd")
 
+# The functions which take the name of a method, a property or a signal, by the index of that argument
+const NAME_ARGUMENTS : Dictionary = {
+	"call": 0, "call_deferred": 0, "callv": 0, "has_method": 0, "rpc": 0, "rpc_id": 1,
+	"connect": 0, "disconnect": 0, "is_connected": 0, "emit_signal": 0, "has_signal": 0,
+	"get": 0, "set": 0, "set_deferred": 0, "tween_property": 1, "Callable": 1, "Signal": 1,
+}
+# The ones a Dictionary has as well, which only count for the script itself: get("name") or self.get("name")
+const NAME_ARGUMENTS_OF_SELF : PackedStringArray = ["get", "set"]
+
 var path : String
 var source_code : String
 var generated_code : String
@@ -453,6 +462,53 @@ func _string_param_obfuscation(token : Token, next_token : Token) -> void:
 			var str : String = token.get_value(false)
 			token.set_value(_symbol_table.obfuscate_string_global(str))
 		maybe_str_param = false
+
+
+## The strings which name something that gets renamed, given where a name is expected, as in
+## call_deferred("my_method"): the string stays as it is, unless a hint has it renamed as well.
+## Each one as [line of source, name]. Takes the output of run()
+func find_unrenamed_names() -> Array:
+	var tokens : Array[Token] = []
+	for line in tokenizer.get_output_lines():
+		for token in line.tokens:
+			if !token.is_of_type(Token.Type.INDENTATION | Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.LINE_BREAK | Token.Type.STATEMENT_BREAK):
+				tokens.append(token)
+
+	var found : Array = []
+	for i in tokens.size() - 1:
+		var token : Token = tokens[i]
+		if !token.is_symbol() or !NAME_ARGUMENTS.has(token.get_value()) or !tokens[i + 1].is_punctuator("("):
+			continue
+		if NAME_ARGUMENTS_OF_SELF.has(token.get_value()) and i >= 2 and tokens[i - 1].is_punctuator(".") and !tokens[i - 2].is_literal("self"):
+			continue
+
+		# The first token of the argument with the name
+		var argument : int = 0
+		var depth : int = 0
+		var at : int = i + 2
+		while at < tokens.size() and argument < NAME_ARGUMENTS[token.get_value()]:
+			if tokens[at].is_punctuator() and "([{".contains(tokens[at].get_value()):
+				depth += 1
+			elif tokens[at].is_punctuator() and ")]}".contains(tokens[at].get_value()):
+				depth -= 1
+				if depth < 0:
+					break
+			elif tokens[at].is_punctuator(",") and depth == 0:
+				argument += 1
+			at += 1
+		if depth < 0 or at >= tokens.size():
+			continue
+
+		# A string alone, which may be a StringName or a NodePath
+		if tokens[at].get_value() in ["&", "^"] and !tokens[at].is_string_literal():
+			at += 1
+		if at + 1 >= tokens.size() or !tokens[at].is_string_literal() or !(tokens[at + 1].is_punctuator(",") or tokens[at + 1].is_punctuator(")")):
+			continue
+		var name : String = tokens[at].get_value(false)
+		var symbol : SymbolTable.Symbol = _symbol_table.find_global_symbol(name)
+		if symbol and symbol.get_name() != name:
+			found.append([tokens[at].source_line, name])
+	return found
 
 
 func _func_feature_filter(token : Token, line : Tokenizer.Line, feature : String, features : PackedStringArray) -> void:
