@@ -379,9 +379,14 @@ func _read_comment() -> void:
 
 func _read_continue_line() -> void:
 	var nchar : String = _stream.peek()
-	
-	while _is_whitespace(nchar) or nchar == "\n":
-		_stream.get_next()
+
+	# Godot goes on past a line with only a comment on it as well
+	while _is_whitespace(nchar) or nchar == "\n" or nchar == "#":
+		if nchar == "#":
+			while !_stream.is_eof() and _stream.peek() != "\n":
+				_stream.get_next()
+		else:
+			_stream.get_next()
 		nchar = _stream.peek()
 
 
