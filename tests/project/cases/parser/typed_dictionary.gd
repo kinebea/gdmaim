@@ -2,11 +2,13 @@ extends RefCounted
 
 ## `Dictionary[K, V]` is a dictionary like `Dictionary`: keys read through a dot are not renamed.
 ## So is a variable that `:=` gives what a function returns, which is declared to be a Dictionary,
-## or what a variable or a constant holds which is one.
+## or what a variable or a constant holds which is one. A member of a named class is one as well,
+## reached through anything declared to be of that class.
 
 var td_health : int = 1
 var td_plain : Dictionary = { "td_health": 5 }
 var td_typed : Dictionary[String, int] = { "td_health": 10 }
+var td_holder : CnBase = CnBase.new()
 
 func total(td_values : Dictionary[String, int]) -> int:
 	return td_values.td_health + td_health
@@ -46,6 +48,9 @@ func run_case() -> String:
 	var later := td_read_later()
 	if read.td_health != 20 or read_typed.td_health != 30 or later.td_health != 50:
 		return "a variable given what a function returns: %s %s %s" % [read, read_typed, later]
+	var later_again := td_read_later(); later_again.td_health += 1
+	if later_again.td_health != 51:
+		return "a variable given what a function returns, with a semicolon after it: %s" % later_again
 	var inferred := { "td_health": 60 }
 	if inferred.td_health != 60:
 		return "a variable given a dictionary with :="
@@ -60,6 +65,10 @@ func run_case() -> String:
 	var same := td_plain
 	if table.td_health != 110 or constant.td_health != 120 or same.td_health != 5:
 		return "a variable given a dictionary that a variable or a constant holds: %s %s %s" % [table, constant, same]
+	# A member of a named class, reached through what is declared to be of that class, here or elsewhere
+	var untyped = self
+	if td_holder.td_member.td_health != 130 or untyped.td_holder.td_member.td_health != 130:
+		return "a dictionary that a member of a named class holds: %s" % td_holder.td_member
 	var settings := Boot.boot_settings()
 	if settings.boot_level != 90:
 		return "a variable given what a function of an autoload returns: %s" % settings

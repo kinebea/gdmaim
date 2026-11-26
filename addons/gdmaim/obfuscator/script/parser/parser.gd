@@ -85,6 +85,11 @@ func _is_class_level(parent : AST.ASTNode) -> bool:
 	return parent is AST.Sequence and parent.get_parent() is AST.Class
 
 
+# Whether a declaration with this parent is a member of the class of the script, and not of an inner class
+func _is_script_level(parent : AST.ASTNode) -> bool:
+	return _is_class_level(parent) and parent.get_parent().get_parent() == null
+
+
 # Whether the token is the name of a binding in a match pattern, like the x in "var x:"
 func is_pattern_binding(token : Token) -> bool:
 	return token != null and _pattern_bindings.has(token.idx)
@@ -729,7 +734,9 @@ func _parse_var(parent : AST.ASTNode) -> AST.Var:
 	ast.default = _parse_var_default(ast)
 	ast.getset = _parse_var_getset(ast)
 	
-	if _class_symbol and (_is_autoload or is_static) and _is_class_level(parent):
+	# A member of a named class is known through what is declared to be of the class, and a static one,
+	# or one of an autoload, through the name of the class as well
+	if _class_symbol and (_is_autoload or is_static or _is_script_level(parent)) and _is_class_level(parent):
 		_class_symbol.add_child(ast.symbol)
 	
 	return ast
@@ -751,7 +758,7 @@ func _parse_export_var(parent : AST.ASTNode) -> AST.ExportVar:
 	ast.default = _parse_var_default(ast)
 	ast.getset = _parse_var_getset(ast)
 	
-	if _class_symbol and _is_autoload:
+	if _class_symbol and (_is_autoload or _is_script_level(parent)):
 		_class_symbol.add_child(ast.symbol)
 	
 	return ast

@@ -25,6 +25,7 @@ var _unique_ids : Dictionary
 var _custom_seed : int = 0
 var _class_names : Dictionary
 var _used_ids : Dictionary
+var _global_types : Dictionary # The type each declaration of a member name is written with, or "" where they differ
 
 # Words a generated name must not be, on top of the names that are locked
 const RESERVED : PackedStringArray = ["if", "elif", "else", "for", "while", "match", "when", "break", "continue", "pass", "return", "class", "class_name", "extends", "is", "in", "as", "self", "super", "signal", "func", "static", "const", "enum", "var", "breakpoint", "preload", "await", "yield", "assert", "void", "and", "or", "not", "namespace", "trait", "true", "false", "null", "PI", "TAU", "INF", "NAN"]
@@ -71,6 +72,7 @@ func create_global_symbol(name : String, type : String = "") -> Symbol:
 	if !symbol:
 		symbol = Symbol.new(name)
 		_global_symbols[name] = symbol
+	_global_types[name] = type if _global_types.get(name, type) == type else ""
 	
 	return Symbol.new_linked(type, symbol)
 
@@ -123,8 +125,13 @@ func resolve_symbol_paths() -> void:
 		for symbol in symbol_path.symbols:
 			log += " [" + symbol.get_name() + "="
 			if cur:
-				cur = cur.children.get(symbol.get_name())
-				log += "CHILD" if cur else ""
+				var child : Symbol = cur.children.get(symbol.get_name())
+				log += "CHILD" if child else ""
+				if !child:
+					var owner : Symbol = _class_of(cur)
+					child = owner.children.get(symbol.get_name()) if owner else null
+					log += "MEMBER OF " + owner.get_name() if child else ""
+				cur = child
 			if !cur and maybe_local:
 				cur = _search_symbol(symbol_path.get_ast(), symbol.get_name(), symbol_path.is_call and symbol_path.symbols.back() == symbol)
 				log += "LOCAL" if cur else ""
@@ -146,6 +153,16 @@ func resolve_symbol_paths() -> void:
 		
 		_Logger.swap(symbol_path.get_log())
 		_Logger.write(log)
+
+
+# The named class that the symbol is declared to be of, as in "var fsm : FSM". A member declared in another
+# script is known by its name, so each declaration of that name has to be written with the same class
+func _class_of(symbol : Symbol) -> Symbol:
+	var type : String = symbol.type
+	var global : Symbol = _global_symbols.get(symbol.get_name())
+	if !type and global and symbol.get_root() == global:
+		type = _global_types.get(symbol.get_name(), "")
+	return find_global_symbol(type) if is_class_name(type) else null
 
 
 # Whether the symbol is of the type Dictionary, or is set to what a function returns that is declared

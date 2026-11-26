@@ -18,4 +18,5 @@ static func td_make() -> Dictionary:
 	return { "td_health": 70 }
 
 static var td_table : Dictionary = { "td_health": 110 }
+var td_member : Dictionary = { "td_health": 130 }
 const TD_CONSTANT := { "td_health": 120 }

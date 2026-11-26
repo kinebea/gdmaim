@@ -538,7 +538,7 @@ In order for the obfuscator to work as well as possible, I recommend heavy use o
 __Dictionaries__
 
 The easiest way to access dictionaries without any issues is by using `get` or the `[]` operator.
-By default, the obfuscator will treat the `.` operator as property access, and thus potentially obfuscate the specified key by mistake. This can be avoided by statically typing dictionaries, although with a limitation: the dictionary must be a property of the _same_ script (an inner class also has those of the inner classes of the script it extends, read with or without `self.`), a static variable of a named script, a property of an autoload or a local variable(which includes function parameters). A variable without a type counts as a dictionary as well when it is set to a dictionary, or to what a function returns which is declared to return a `Dictionary`: a function of the same script, a static function called through a `class_name`, or a function of an autoload called through its name. So does one set to a variable or a constant that is declared to be a `Dictionary`, of the same script, of a `class_name` (a static one) or of an autoload, as in `var ui := Style.UI`.
+By default, the obfuscator will treat the `.` operator as property access, and thus potentially obfuscate the specified key by mistake. This can be avoided by statically typing dictionaries, although with a limitation: the dictionary must be a property of the _same_ script (an inner class also has those of the inner classes of the script it extends, read with or without `self.`), a static variable of a named script, a property of an autoload, a property of a `class_name` read through something declared to be of that class (`var fsm : FSM`, then `fsm.states.KEY`; one declared in another script, like a member of the script it extends, counts when every declaration of that name is written with the same class) or a local variable(which includes function parameters). A variable without a type counts as a dictionary as well when it is set to a dictionary, or to what a function returns which is declared to return a `Dictionary`: a function of the same script, a static function called through a `class_name`, or a function of an autoload called through its name. So does one set to a variable or a constant that is declared to be a `Dictionary`, of the same script, of a `class_name` (a static one) or of an autoload, as in `var ui := Style.UI`.
 
 ```js
 class_name Test extends RefCounted
@@ -560,6 +560,8 @@ func my_func(param_dict : Dictionary = { "KEY": 0, }, any_value : Variant = null
   returned_dict.KEY = 1 # valid
   var static_dict := OtherClass.read_static_dict()
   static_dict.KEY = 1 # valid
+  var typed_test : Test = Test.new()
+  typed_test.prop_dict.KEY = 1 # valid
   Test.new().prop_dict.KEY = 1 # invalid!
   any_value.KEY = 1 # invalid!
   var object_dict := Test.new().read_dict()
