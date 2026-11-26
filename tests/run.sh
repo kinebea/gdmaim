@@ -37,6 +37,11 @@ pass() {
 	passed_here=$((passed_here + 1))
 }
 
+# The classes of a class cache one to a line, sorted: Godot writes them in no set order
+cache_entries() {
+	tr -d '\r\n' < "$1" | sed 's/\[{/[\n{/g; s/}, {/}\n{/g; s/}\]/}\n]/g' | sort
+}
+
 if [ $# -gt 0 ]; then
 	configs="$*"
 else
@@ -113,7 +118,7 @@ for config in $configs; do
 	else
 		pass
 	fi
-	if ! cmp -s "$class_cache" out/class_cache.before; then
+	if [ "$(cache_entries "$class_cache")" != "$(cache_entries out/class_cache.before)" ]; then
 		fail "export | the class cache of the project was left modified"
 		cp out/class_cache.before "$class_cache"
 	else
