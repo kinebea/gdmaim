@@ -8,6 +8,7 @@ const AST := preload("script/parser/ast.gd")
 
 # The type of a variable set to what a function returns, ahead of the name of that function
 const RETURNED_BY : String = "returned by "
+const VALUE_OF : String = "value of "
 
 var settings : _Settings
 
@@ -152,16 +153,18 @@ func resolve_symbol_paths() -> void:
 # functions of the class or the autoload it is called on
 func _is_dictionary(symbol : Symbol, symbol_path : SymbolPath) -> bool:
 	var type : String = symbol.type
-	if type.begins_with(RETURNED_BY):
-		var name : String = type.trim_prefix(RETURNED_BY)
-		var function : Symbol = null
+	var of_value : bool = type.begins_with(VALUE_OF)
+	if type.begins_with(RETURNED_BY) or of_value:
+		var name : String = type.trim_prefix(VALUE_OF if of_value else RETURNED_BY)
+		var source : Symbol = null
 		if name.contains("."):
-			# A static function of a named class, or a function of an autoload, which it has among its children
+			# A static member of a named class, or a member of an autoload, which it has among its children
 			var owner : Symbol = find_global_symbol(name.get_slice(".", 0))
-			function = owner.children.get(name.get_slice(".", 1)) if owner else null
+			source = owner.children.get(name.get_slice(".", 1)) if owner else null
 		elif symbol_path.get_ast():
-			function = _search_symbol(symbol_path.get_ast(), name, true)
-		type = function.type if function else ""
+			source = _search_symbol(symbol_path.get_ast(), name, !of_value)
+		# Only a type that is written out counts, so a chain of them comes to an end
+		type = source.type if source else ""
 	return type == "Dictionary" or type.begins_with("Dictionary.")
 
 

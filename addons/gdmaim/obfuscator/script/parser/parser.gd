@@ -963,6 +963,12 @@ func _parse_var_type(ast : AST.ASTNode) -> String:
 		if depth == 0 and (!after or after.is_line_break() or after.is_comment() or after.type == Token.Type.STATEMENT_BREAK):
 			return SymbolTable.RETURNED_BY + function
 
+	# Likewise one set to a variable or a constant, of the same script or of a named class
+	if function and _tokenizer.peek(assign).is_operator("="):
+		var after : Token = _tokenizer.peek(open)
+		if !after or after.is_line_break() or after.is_comment() or after.type == Token.Type.STATEMENT_BREAK:
+			return SymbolTable.VALUE_OF + function
+
 	return ""
 
 

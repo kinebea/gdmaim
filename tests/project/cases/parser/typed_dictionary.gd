@@ -1,7 +1,8 @@
 extends RefCounted
 
 ## `Dictionary[K, V]` is a dictionary like `Dictionary`: keys read through a dot are not renamed.
-## So is a variable that `:=` gives what a function returns, which is declared to be a Dictionary.
+## So is a variable that `:=` gives what a function returns, which is declared to be a Dictionary,
+## or what a variable or a constant holds which is one.
 
 var td_health : int = 1
 var td_plain : Dictionary = { "td_health": 5 }
@@ -54,6 +55,11 @@ func run_case() -> String:
 	var made_object := CnBase.cn_make(80)
 	if made_object.cn_size != 80:
 		return "a variable given an object a static function of another class returns"
+	var table := CnBase.td_table
+	var constant := CnBase.TD_CONSTANT
+	var same := td_plain
+	if table.td_health != 110 or constant.td_health != 120 or same.td_health != 5:
+		return "a variable given a dictionary that a variable or a constant holds: %s %s %s" % [table, constant, same]
 	var settings := Boot.boot_settings()
 	if settings.boot_level != 90:
 		return "a variable given what a function of an autoload returns: %s" % settings
