@@ -147,6 +147,9 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	var builtins : Script = preload("builtins.gd")
 	for global in builtins.GLOBALS:
 		_symbols.lock_symbol_name(global)
+	# A script may declare one with the same name, which every other script still reads as the global one
+	for constant_ in builtins.GLOBAL_CONSTANTS:
+		_symbols.lock_symbol_name(constant_)
 	for variant in builtins.VARIANTS:
 		if variant.has("class"):
 			_symbols.lock_symbol_name(variant["class"])

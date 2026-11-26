@@ -33,6 +33,7 @@ func _ready() -> void:
 		"parser/parameters",
 		"parser/generated_names",
 		"parser/class_names",
+		"parser/global_constants",
 		"postprocess/strip_typing",
 		"postprocess/feature_func",
 		"postprocess/member_order",
