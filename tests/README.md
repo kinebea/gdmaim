@@ -17,7 +17,7 @@ It looks for the editor as `godot`. Set `GODOT` to use another one:
 GODOT=/path/to/godot tests/run.sh
 ```
 
-A run takes three to four minutes and ends with `All 1000 checks passed.` or with the cases that failed:
+A run takes three to four minutes and ends with `All 1017 checks passed.` or with the cases that failed:
 
 ```
 == default

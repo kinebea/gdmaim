@@ -1109,8 +1109,9 @@ const VARIANTS : Array[Dictionary] = [
 	}
 ]
 const STARTER_TOKENS : PackedStringArray = [
-	"@icon", 
-	"@tool", 
+	"@icon",
+	"@tool",
+	"@static_unload",
 	"class_name", 
 	"extends",
 	"@abstract" 

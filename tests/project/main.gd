@@ -36,6 +36,7 @@ func _ready() -> void:
 		"postprocess/strip_typing",
 		"postprocess/feature_func",
 		"postprocess/member_order",
+		"postprocess/script_annotations",
 		"postprocess/onready_order",
 		"postprocess/annotation_lines",
 		"postprocess/export_annotations",
