@@ -225,6 +225,18 @@ for config in $configs; do
 		fi
 	fi
 
+	# What Check Exported Scripts runs on the game, which loads every script with the autoloads still there
+	if [ -f out/test.pck ] && [ "$(option "$config" check_pack)" = "clean" ]; then
+		limit 120 "$godot" --headless --main-pack out/test.pck --script addons/gdmaim/util/check_pack.gd > "out/check_pack.$config.log" 2>&1
+		if ! grep -q "GDMaim - Scripts checked: " "out/check_pack.$config.log"; then
+			fail "check pack | it did not get to the end, see $project/out/check_pack.$config.log"
+		elif grep -q -E "previously freed|CrashHandler" "out/check_pack.$config.log"; then
+			fail "check pack | a script loaded after the autoloads were freed: $(grep -m1 -E "previously freed|CrashHandler" "out/check_pack.$config.log")"
+		else
+			pass
+		fi
+	fi
+
 	echo "  $passed_here passed, $failed_here failed"
 	total=$((total + passed_here + failed_here))
 	failed=$((failed + failed_here))

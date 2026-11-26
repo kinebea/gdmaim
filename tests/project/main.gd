@@ -67,6 +67,7 @@ func _ready() -> void:
 		"export/excluded_paths",
 		"export/names_in_strings",
 		"export/names_by_pattern",
+		"export/checked_autoloads",
 	]
 	for case_name in cases:
 		var result : String = await run(case_name)

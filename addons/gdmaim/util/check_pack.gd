@@ -3,18 +3,23 @@ extends SceneTree
 ## Run by the export plugin with the pack of an exported project: loads every script in it,
 ## so that Godot reports the ones that do not compile. The export plugin reads the output.
 ##
-## The autoloads are freed before they enter the tree and no scene is opened. What still runs
+## The autoloads are taken out before they enter the tree and no scene is opened. What still runs
 ## of the project is what loading a script runs: static initializers, and _init() of the autoloads.
+## The autoloads are freed only once the scripts are loaded: a script may name one, which Godot
+## knows by the node itself, and finding it freed crashed Godot now and then.
 
 const CHECKED : String = "GDMaim - Scripts checked: "
 
 
 func _initialize() -> void:
+	var autoloads : Array[Node] = []
 	for node in root.get_children():
 		root.remove_child(node)
-		node.free()
+		autoloads.append(node)
 
 	print(CHECKED, _load_scripts("res://"))
+	for node in autoloads:
+		node.free()
 	quit()
 
 
