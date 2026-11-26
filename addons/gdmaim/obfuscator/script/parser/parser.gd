@@ -291,6 +291,7 @@ func _is_symbol_typed(token : Token) -> bool:
 func _parse_symbol_path(ast_node : AST.ASTNode) -> SymbolTable.SymbolPath:
 	var path : SymbolTable.SymbolPath = _symbol_table.create_symbol_path(ast_node)
 	path.maybe_local = !_tokenizer.peek(0) or !_tokenizer.peek(0).is_punctuator(".")
+	path.of_self = !path.maybe_local and _tokenizer.peek(-1) != null and _tokenizer.peek(-1).get_value() == "self"
 	path.set_log(_Logger.current_log)
 	path.line = _tokenizer.peek().line
 	

@@ -22,6 +22,17 @@ func td_object() -> td_inner:
 class td_inner:
 	var td_health : int = 40
 
+class TdBase:
+	var td_data : Dictionary = { "td_health": 100 }
+
+class TdDerived extends TdBase:
+	func td_derived_read() -> int:
+		return td_data.td_health
+
+class TdFurther extends TdDerived:
+	func td_further_read() -> int:
+		return self.td_data.td_health + td_data.td_health
+
 func run_case() -> String:
 	if td_plain.td_health != 5:
 		return "plain"
@@ -46,6 +57,8 @@ func run_case() -> String:
 	var settings := Boot.boot_settings()
 	if settings.boot_level != 90:
 		return "a variable given what a function of an autoload returns: %s" % settings
+	if TdDerived.new().td_derived_read() != 100 or TdFurther.new().td_further_read() != 200:
+		return "a dictionary that an inner class has from the inner class it extends"
 	# Not a dictionary, whose member is renamed along with the one it is
 	var object := td_object()
 	if object.td_health != 40:

@@ -538,7 +538,7 @@ In order for the obfuscator to work as well as possible, I recommend heavy use o
 __Dictionaries__
 
 The easiest way to access dictionaries without any issues is by using `get` or the `[]` operator.
-By default, the obfuscator will treat the `.` operator as property access, and thus potentially obfuscate the specified key by mistake. This can be avoided by statically typing dictionaries, although with a limitation: the dictionary must be a property of the _same_ script, a static variable of a named script, a property of an autoload or a local variable(which includes function parameters). A variable without a type counts as a dictionary as well when it is set to a dictionary, or to what a function returns which is declared to return a `Dictionary`: a function of the same script, a static function called through a `class_name`, or a function of an autoload called through its name.
+By default, the obfuscator will treat the `.` operator as property access, and thus potentially obfuscate the specified key by mistake. This can be avoided by statically typing dictionaries, although with a limitation: the dictionary must be a property of the _same_ script (an inner class also has those of the inner classes of the script it extends, read with or without `self.`), a static variable of a named script, a property of an autoload or a local variable(which includes function parameters). A variable without a type counts as a dictionary as well when it is set to a dictionary, or to what a function returns which is declared to return a `Dictionary`: a function of the same script, a static function called through a `class_name`, or a function of an autoload called through its name.
 
 ```js
 class_name Test extends RefCounted

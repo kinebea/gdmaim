@@ -127,6 +127,9 @@ func resolve_symbol_paths() -> void:
 			if !cur and maybe_local:
 				cur = _search_symbol(symbol_path.get_ast(), symbol.get_name(), symbol_path.is_call and symbol_path.symbols.back() == symbol)
 				log += "LOCAL" if cur else ""
+			elif !cur and symbol_path.of_self and symbol == symbol_path.symbols[0] and symbol_path.get_ast():
+				cur = _search_member(symbol_path.get_ast(), symbol.get_name(), symbol_path.is_call and symbol_path.symbols.size() == 1)
+				log += "MEMBER" if cur else ""
 			if !cur:
 				cur = find_global_symbol(symbol.get_name())
 				log += "GLOBAL" if cur else ""
@@ -228,10 +231,52 @@ func _search_symbol(ast_node : AST.ASTNode, name : String, is_func : bool) -> Sy
 					break
 		if found:
 			return found
+		if ast_node is AST.Class:
+			found = _search_inherited(ast_node, name, is_func)
+			if found:
+				return found
 		
 		from = ast_node
 		ast_node = ast_node.get_parent()
 	
+	return null
+
+
+# A member of the class the node is in, or of one it extends in the same script, as in self.name
+func _search_member(ast_node : AST.ASTNode, name : String, is_func : bool) -> Symbol:
+	while ast_node and not ast_node is AST.Class:
+		ast_node = ast_node.get_parent()
+	if !ast_node:
+		return null
+	for child in ast_node.body.statements:
+		if child is AST.SymbolDeclaration and child.symbol and child.symbol.get_name() == name and (child is AST.Func == is_func):
+			return child.symbol
+	return _search_inherited(ast_node, name, is_func)
+
+
+# A member that a class has from the inner classes of the script it extends, one after the other
+func _search_inherited(cls : AST.Class, name : String, is_func : bool) -> Symbol:
+	var seen : Array[AST.Class] = [cls]
+	while cls.ext and cls.ext.symbols.size() == 1:
+		cls = _find_inner_class(cls, cls.ext.symbols[0].get_name())
+		if !cls or seen.has(cls):
+			return null
+		seen.append(cls)
+		for child in cls.body.statements:
+			if child is AST.SymbolDeclaration and child.symbol and child.symbol.get_name() == name and (child is AST.Func == is_func):
+				return child.symbol
+	return null
+
+
+# The inner class of the given name that is seen from the given node
+func _find_inner_class(from : AST.ASTNode, name : String) -> AST.Class:
+	var node : AST.ASTNode = from.get_parent()
+	while node:
+		if node is AST.Sequence:
+			for child in node.statements:
+				if child is AST.Class and child.symbol and child.symbol.get_name() == name:
+					return child
+		node = node.get_parent()
 	return null
 
 
@@ -342,6 +387,7 @@ class SymbolPath:
 	var symbols : Array[Symbol]
 	var is_call : bool = false
 	var maybe_local : bool = true
+	var of_self : bool = false # Whether it comes after "self.", which makes it a member of the class
 	var log : WeakRef
 	var line : int
 	
