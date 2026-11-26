@@ -214,7 +214,7 @@ func _parse_annotation(parent : AST.ASTNode) -> AST.ASTNode:
 	
 	if token.get_value().begins_with("@export"):
 		if _tokenizer.peek().is_punctuator("("):
-			_skip_brackets("(", ")")
+			_parse_annotation_arguments(parent)
 		
 		var exported_var : bool = true
 		for key : String in ["@export_category", "@export_group", '@export_subgroup']:
@@ -236,6 +236,26 @@ func _parse_annotation(parent : AST.ASTNode) -> AST.ASTNode:
 				_token = _tokenizer.get_next()
 			
 	return null
+
+
+# The arguments of an annotation, up to its closing bracket. A name in them, as in
+# @export_range(0, MAX_SPEED), is one like anywhere else and is renamed with what it names
+func _parse_annotation_arguments(parent : AST.ASTNode) -> void:
+	var depth : int = 0
+	while !_tokenizer.is_eof():
+		var token : Token = _tokenizer.peek()
+		if token.is_symbol() and depth > 0:
+			var symbol : AST.Symbol = _parse_symbol(parent)
+			if symbol and parent is AST.Sequence:
+				parent.statements.append(symbol)
+			continue
+		_tokenizer.get_next()
+		if token.is_punctuator("("):
+			depth += 1
+		elif token.is_punctuator(")"):
+			depth -= 1
+			if depth <= 0:
+				return
 
 
 func _parse_symbol(parent : AST.ASTNode) -> AST.Symbol:
