@@ -69,7 +69,7 @@ their default value.
 | `translate` | The settings GDMaim starts out with, a compressed source map among them. The game runs `broken/at_runtime.gd` (feature tag `crash`), which fails twice. Its log, translated with `util/translate_log.gd`, has to name the functions, the variable and the lines of the source. `check_viewer_log.gd` checks the same in the tab `Log` of the source map viewer. |
 | `encode` | The settings GDMaim starts out with and Encode Strings: every case has to do the same with its strings encoded. Check Exported Scripts is on as well. |
 | `inline` | The settings GDMaim starts out with, Inline Constants and Inline Enums: every case has to do the same with values in place of names. Encode Strings is on as well, for a string that took the place of a constant to be encoded, and Check Exported Scripts. |
-| `enum_warning` | Inline Enums in a project that sets the warning `Int As Enum Without Cast` to Error: the export has to say that it leaves Inline Enums out, and the game has to compile. |
+| `enum_warning` | Inline Enums in a project that sets the warning `Int As Enum Without Cast` to Error: the export has to say that it leaves the keys of enums with a name as they are, and the game has to compile. The keys of an enum without a name are still replaced. |
 | `binary_preset` | A preset that exports scripts as binary tokens, which GDMaim reports as an error. |
 
 The lines beginning with `;` at the top of a configuration are for `run.sh`:
@@ -78,7 +78,8 @@ The lines beginning with `;` at the top of a configuration are for `run.sh`:
   tell what to expect: `renamed` if names are obfuscated, `postprocessed` if comments, filtered lines
   and feature functions are removed, `untyped` if static typing is stripped, `binary` if GDMaim
   exports scripts as binary tokens, `encoded` if strings are
-  exported encoded, `inlined` if the values of constants and of the keys of enums are put in place of their names, `crash` to have the game start with two errors.
+  exported encoded, `inlined` if the values of constants and of the keys of enums are put in place of their names,
+  `inlined_loose` if that is done for the keys of enums without a name alone, `crash` to have the game start with two errors.
 - `script_export_mode` is the GDScript export mode of the preset, text if left out.
 - `exclude_filter` is the filter of the preset for files to leave out, empty if left out.
 - `export=game` exports the game instead of its pack alone, and has it checked that no library of the

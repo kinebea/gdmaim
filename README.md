@@ -104,7 +104,7 @@ The constants stay declared, as something may use them which is not replaced: a 
 
 `Inline Enums`: If enabled, the value of a key of an enum is put where the key is used: `State.RUN` becomes `1`. The enum has to be the only member of its name in the project, and a key is replaced where it follows the name of its enum. The keys of an enum without a name are treated like constants. The value of a key has to be written as a whole number, or counted on from one that is: a key whose value is worked out, like `1 << 3`, stays as it is, as do the keys after it up to the next number.
 
-The enums stay declared, as they may be used as a type or for their keys. A whole number is then written where an enum is expected, which GDScript warns about but takes. If the warning `Int As Enum Without Cast` is set to `Error` in the project settings, the keys are left as they are, and the export says so.
+The enums stay declared, as they may be used as a type or for their keys. A whole number is then written where an enum is expected, which GDScript warns about but takes. If the warning `Int As Enum Without Cast` is set to `Error` in the project settings, the keys of enums with a name are left as they are, and the export says so.
 
 `Preprocessor prefix`: The prefix to use for preprocessor hints.
 

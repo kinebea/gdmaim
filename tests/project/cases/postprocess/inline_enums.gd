@@ -2,7 +2,8 @@ extends RefCounted
 
 ## Inline Enums puts the value of a key of an enum where the key is used, which the configurations
 ## with the feature tag `inlined` turn on. An enum stays what it is wherever it is used as a whole:
-## as a type, or for its keys.
+## as a type, or for its keys. With the feature tag `inlined_loose`, only the keys of an enum without
+## a name are replaced.
 ##
 ## The numbers are ones that are nowhere else in this file, to be counted in what got exported.
 
@@ -69,16 +70,19 @@ func run_case() -> String:
 	if exported.is_empty():
 		return "ok"
 	var inlined : bool = OS.has_feature("inlined")
-	# How often each number is in the script: once where it is declared, and once more wherever it took the place of the key
+	var loose : bool = inlined or OS.has_feature("inlined_loose")
+	# How often each number is in the script: once where it is declared, and once more wherever it took the place of the key.
+	# The last of an entry tells whether the key is one of an enum without a name
 	var counts : Array = [
-		["50" + "141", 1, 5],
-		["(-50" + "143)", 0, 4],
-		["50" + "147", 1, 2],
-		["50" + "149", 1, 2],
-		["50" + "151", 1, 2],
+		["50" + "141", 1, 5, false],
+		["(-50" + "143)", 0, 4, false],
+		["50" + "147", 1, 2, false],
+		["50" + "149", 1, 2, true],
+		["50" + "151", 1, 2, false],
 	]
 	for entry in counts:
 		var count : int = exported.count(entry[0])
-		if count != entry[2 if inlined else 1]:
-			return "%s is in the exported script %d times, not %d" % [entry[0], count, entry[2 if inlined else 1]]
+		var expected : int = entry[2] if (loose if entry[3] else inlined) else entry[1]
+		if count != expected:
+			return "%s is in the exported script %d times, not %d" % [entry[0], count, expected]
 	return "ok"

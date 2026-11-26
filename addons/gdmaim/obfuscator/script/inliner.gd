@@ -32,8 +32,9 @@ var _enums : Dictionary # What takes the place of the keys of an enum with a nam
 var _declared_at : Dictionary # The tokens which name something where it is declared
 
 
-## A list of ScriptObfuscators, whose symbols have been resolved
-func run(obfuscators : Array, symbols : SymbolTable, constants : bool, enums : bool) -> void:
+## A list of ScriptObfuscators, whose symbols have been resolved. Without named_enums, only the keys
+## of enums without a name are replaced, which are whole numbers and no enum
+func run(obfuscators : Array, symbols : SymbolTable, constants : bool, enums : bool, named_enums : bool = true) -> void:
 	_symbols = symbols
 	for symbol in symbols._local_symbols:
 		_unlocked_locals[symbol] = true
@@ -61,7 +62,7 @@ func run(obfuscators : Array, symbols : SymbolTable, constants : bool, enums : b
 				var keeps_string : bool = !obfuscates_strings and !obfuscator.tokenizer.has_source_hint(lines[l].tokens[first].source_line, PreprocessorHints.OBFUSCATE_STRINGS)
 				_read_constant(lines[l].tokens, first, class_root, keeps_string)
 			elif enums and lines[l].tokens[first].is_keyword("enum"):
-				_read_enum(lines, l, class_root)
+				_read_enum(lines, l, class_root, named_enums)
 	if _values.is_empty() and _enums.is_empty():
 		return
 	for obfuscator in obfuscators:
@@ -175,7 +176,7 @@ func _is_number(parts : Array[Token]) -> bool:
 
 # Takes down the keys of the enum that begins on the given line, with the values they stand for.
 # A key whose value is worked out is left out, and so are the ones counted on from it
-func _read_enum(lines : Array[Tokenizer.Line], l : int, class_root : SymbolTable.Symbol) -> void:
+func _read_enum(lines : Array[Tokenizer.Line], l : int, class_root : SymbolTable.Symbol, named : bool) -> void:
 	# The enum may go on over several lines
 	var parts : Array[Token] = []
 	var closed : bool = false
@@ -237,7 +238,7 @@ func _read_enum(lines : Array[Tokenizer.Line], l : int, class_root : SymbolTable
 			at += 1
 
 	if name:
-		if !_is_only_member(name.symbol):
+		if !named or !_is_only_member(name.symbol):
 			return
 		var values : Dictionary
 		for key in keys:

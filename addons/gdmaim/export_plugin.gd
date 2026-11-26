@@ -217,13 +217,13 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	if settings.obfuscation_enabled:
 		_symbols.obfuscate_symbols()
 	
-	var inline_enums : bool = settings.inline_enums
+	var named_enums : bool = true
 	# A key of an enum turns into a whole number, which such a project does not take where the enum is expected
-	if settings.obfuscation_enabled and inline_enums and ProjectSettings.get_setting("debug/gdscript/warnings/enable", true) and int(ProjectSettings.get_setting("debug/gdscript/warnings/int_as_enum_without_cast", 1)) == 2:
-		inline_enums = false
-		push_warning("GDMaim - Inline Enums is left out, as the warning 'Int As Enum Without Cast' is set to Error in the project settings.")
-	if settings.obfuscation_enabled and (settings.inline_constants or inline_enums):
-		Inliner.new().run(_src_obfuscators.values(), _symbols, settings.inline_constants, inline_enums)
+	if settings.obfuscation_enabled and settings.inline_enums and ProjectSettings.get_setting("debug/gdscript/warnings/enable", true) and int(ProjectSettings.get_setting("debug/gdscript/warnings/int_as_enum_without_cast", 1)) == 2:
+		named_enums = false
+		push_warning("GDMaim - Inline Enums leaves the keys of enums with a name as they are, as the warning 'Int As Enum Without Cast' is set to Error in the project settings.")
+	if settings.obfuscation_enabled and (settings.inline_constants or settings.inline_enums):
+		Inliner.new().run(_src_obfuscators.values(), _symbols, settings.inline_constants, settings.inline_enums, named_enums)
 	
 	# Initialize gdbc if necessary
 	_compiler = null
