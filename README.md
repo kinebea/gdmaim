@@ -116,7 +116,7 @@ The enums stay declared, as they may be used as a type or for their keys. A whol
 
 `Strip Extraneous Spacing`: If enabled, spaces and tabs that are not required, get removed.
 
-`Strip Editor Annotations`: If enabled, annotations used exclusively by the editor will be removed, like `@export_group`, `@icon` and `@warning_ignore`. `@export` on a variable is kept, because it also decides what `duplicate()`, local-to-scene resources and `ResourceSaver` copy.
+`Strip Editor Annotations`: If enabled, annotations used exclusively by the editor will be removed, like `@export_group`, `@icon`, `@tool` and `@warning_ignore`, and `@export_tool_button` along with `@tool`, as only a tool script may have one. `@export` on a variable is kept, because it also decides what `duplicate()`, local-to-scene resources and `ResourceSaver` copy.
 
 `Strip Static Typing`: Removes the types of variables, parameters and return values. Exported variables keep their type, which `@export` relies on. A whole number that a `float` is declared with is written as one, like `var speed=2.0` for `var speed : float = 2`. Without its type, the variable does not turn whole numbers it is given later on into a `float` any more.
 

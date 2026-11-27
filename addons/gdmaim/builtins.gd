@@ -1673,8 +1673,9 @@ const ATTRIBUTES : PackedStringArray = [
 	"@export_subgroup"
 ]
 const ANNOTATIONS : PackedStringArray = [
-	"@icon", 
-	"@tool", 
+	"@icon",
+	"@tool",
+	"@export_tool_button", # Only a tool script may have one
 	"@warning_ignore", 
 	"@warning_ignore_start", 
 	"@warning_ignore_restore",
