@@ -19,6 +19,13 @@ const NAME_ARGUMENTS : Dictionary = {
 }
 # The ones a Dictionary has as well, which only count for the script itself: get("name") or self.get("name")
 const NAME_ARGUMENTS_OF_SELF : PackedStringArray = ["get", "set"]
+# The ones a Signal has as well, which take what to connect to and not a name
+const SIGNAL_METHODS : PackedStringArray = ["connect", "disconnect", "is_connected"]
+# The functions which print what they are given, whose strings are not names
+const PRINT_FUNCTIONS : PackedStringArray = [
+	"print", "prints", "printt", "printerr", "printraw", "print_rich", "print_verbose", "print_debug",
+	"push_error", "push_warning",
+]
 # The functions which give the names of members, as they are once renamed
 const NAME_LISTS : PackedStringArray = [
 	"get_method_list", "get_script_method_list", "get_property_list", "get_script_property_list",
@@ -500,33 +507,8 @@ func find_unrenamed_names() -> Array:
 	var tokens : Array[_Token] = _get_code_tokens()
 	var found : Array = []
 	for i in tokens.size() - 1:
-		var token : _Token = tokens[i]
-		if !token.is_symbol() or !NAME_ARGUMENTS.has(token.get_value()) or !tokens[i + 1].is_punctuator("("):
-			continue
-		if NAME_ARGUMENTS_OF_SELF.has(token.get_value()) and i >= 2 and tokens[i - 1].is_punctuator(".") and !tokens[i - 2].is_literal("self"):
-			continue
-
-		# The first token of the argument with the name
-		var argument : int = 0
-		var depth : int = 0
-		var at : int = i + 2
-		while at < tokens.size() and argument < NAME_ARGUMENTS[token.get_value()]:
-			if tokens[at].is_punctuator() and "([{".contains(tokens[at].get_value()):
-				depth += 1
-			elif tokens[at].is_punctuator() and ")]}".contains(tokens[at].get_value()):
-				depth -= 1
-				if depth < 0:
-					break
-			elif tokens[at].is_punctuator(",") and depth == 0:
-				argument += 1
-			at += 1
-		if depth < 0 or at >= tokens.size():
-			continue
-
-		# A string alone, which may be a StringName or a NodePath
-		if tokens[at].get_value() in ["&", "^"] and !tokens[at].is_string_literal():
-			at += 1
-		if at + 1 >= tokens.size() or !tokens[at].is_string_literal() or !(tokens[at + 1].is_punctuator(",") or tokens[at + 1].is_punctuator(")")):
+		var at : int = _find_written_name(tokens, i)
+		if at < 0:
 			continue
 		var name : String = tokens[at].get_value(false)
 		var symbol : _SymbolTable._Symbol = _symbol_table.find_global_symbol(name)
@@ -561,6 +543,119 @@ func find_names_lost_by_pattern() -> Array:
 		elif NAME_PATTERNS.has(token.get_value()) and i > 0 and tokens[i - 1].is_punctuator(".") and i + 3 < tokens.size() and tokens[i + 2].is_string_literal() and (tokens[i + 3].is_punctuator(")") or tokens[i + 3].is_punctuator(",")):
 			picks.append([tokens[i + 2].source_line, token.get_value(), tokens[i + 2].get_value(false)])
 	return found
+
+
+# A function which gives a name that is not written out where a name is expected, as in get(property),
+# does not find what gets renamed by the strings it may build that name from: a string that is a name,
+# as in ["speed"], or one that a name begins or ends with, as in "slot_" + kind. Each string of such a
+# function that would not find what gets renamed, as [line of source, how the string is put together
+# with something else ("" for not at all, or begins_with, ends_with, contains), the string, the method
+# given the name, the names]
+func find_names_given_by_variable() -> Array:
+	var tokens : Array[_Token] = _get_code_tokens()
+	var found : Array = []
+	var given : String # A method of NAME_ARGUMENTS given a name not written out in the function
+	var strings : Array # The strings of that function, as [index of the token, how it is put together]
+	var written : Dictionary # The strings given alone where a name is expected, which find_unrenamed_names() has
+	for i in tokens.size() + 1:
+		# A function, and not a lambda, begins, or the script ends
+		if i == tokens.size() or (tokens[i].is_keyword("func") and i + 1 < tokens.size() and tokens[i + 1].is_symbol()):
+			for string in (strings if given else []):
+				var token : _Token = tokens[string[0]]
+				var text : String = token.get_value(false)
+				var lost : PackedStringArray
+				if string[1]:
+					lost = _symbol_table.find_names_lost_by(string[1], text)
+				elif !written.has(string[0]) and !_is_key(tokens, string[0]):
+					var symbol : _SymbolTable._Symbol = _symbol_table.find_global_symbol(text)
+					if symbol and symbol.get_name() != text:
+						lost.append(text)
+				if lost:
+					found.append([token.source_line, string[1], text, given, lost])
+			given = ""
+			strings = []
+			continue
+
+		var token : _Token = tokens[i]
+		if token.is_string_literal() and !token.get_value(false).is_empty() and !PRINT_FUNCTIONS.has(_get_enclosing_call(tokens, i)):
+			var before : bool = i > 0 and tokens[i - 1].is_operator("+")
+			var after : bool = i + 1 < tokens.size() and tokens[i + 1].is_operator("+")
+			strings.append([i, "contains" if before and after else "ends_with" if before else "begins_with" if after else ""])
+		elif _find_name_argument(tokens, i) >= 0:
+			var at : int = _find_written_name(tokens, i)
+			if at >= 0:
+				written[at] = true
+			# What a Signal connects to is not a name: some_signal.connect(_on_some_signal)
+			elif !given and !(SIGNAL_METHODS.has(token.get_value()) and i > 0 and tokens[i - 1].is_punctuator(".")):
+				given = token.get_value()
+	return found
+
+
+# The function called with the given token in its arguments, or "" for none
+func _get_enclosing_call(tokens : Array[_Token], i : int) -> String:
+	var depth : int = 0
+	for at in range(i - 1, 0, -1):
+		if tokens[at].is_punctuator() and ")]}".contains(tokens[at].get_value()):
+			depth += 1
+		elif tokens[at].is_punctuator() and "([{".contains(tokens[at].get_value()):
+			depth -= 1
+			if depth < 0:
+				return tokens[at - 1].get_value() if tokens[at].is_punctuator("(") and tokens[at - 1].is_symbol() else ""
+		elif tokens[at].is_keyword("func"):
+			break
+	return ""
+
+
+# Whether the string at the given token is the key of a Dictionary: { "key": 1 }, values["key"] or
+# values.get("key")
+func _is_key(tokens : Array[_Token], i : int) -> bool:
+	if i + 1 < tokens.size() and tokens[i + 1].is_punctuator(":"):
+		return true
+	if i < 2 or i + 1 >= tokens.size():
+		return false
+	if tokens[i - 1].is_punctuator("[") and tokens[i + 1].is_punctuator("]"):
+		return tokens[i - 2].is_symbol() or tokens[i - 2].is_punctuator(")") or tokens[i - 2].is_punctuator("]")
+	return i >= 4 and tokens[i - 1].is_punctuator("(") and tokens[i - 2].get_value() in ["get", "set", "has", "erase"] and tokens[i - 3].is_punctuator(".") and !tokens[i - 4].is_literal("self")
+
+
+# The first token of the argument with the name, of a call of NAME_ARGUMENTS at the given token, or -1
+func _find_name_argument(tokens : Array[_Token], i : int) -> int:
+	var token : _Token = tokens[i]
+	if !token.is_symbol() or !NAME_ARGUMENTS.has(token.get_value()) or i + 1 >= tokens.size() or !tokens[i + 1].is_punctuator("("):
+		return -1
+	if NAME_ARGUMENTS_OF_SELF.has(token.get_value()) and i >= 2 and tokens[i - 1].is_punctuator(".") and !tokens[i - 2].is_literal("self"):
+		return -1
+
+	var argument : int = 0
+	var depth : int = 0
+	var at : int = i + 2
+	while at < tokens.size() and argument < NAME_ARGUMENTS[token.get_value()]:
+		if tokens[at].is_punctuator() and "([{".contains(tokens[at].get_value()):
+			depth += 1
+		elif tokens[at].is_punctuator() and ")]}".contains(tokens[at].get_value()):
+			depth -= 1
+			if depth < 0:
+				break
+		elif tokens[at].is_punctuator(",") and depth == 0:
+			argument += 1
+		at += 1
+	if depth < 0 or at >= tokens.size() or tokens[at].is_punctuator(")"):
+		return -1
+	return at
+
+
+# The string given alone as the name, as in call_deferred("my_method"), of a call of NAME_ARGUMENTS at the
+# given token, or -1
+func _find_written_name(tokens : Array[_Token], i : int) -> int:
+	var at : int = _find_name_argument(tokens, i)
+	if at < 0:
+		return -1
+	# A StringName or a NodePath
+	if tokens[at].get_value() in ["&", "^"] and !tokens[at].is_string_literal():
+		at += 1
+	if at + 1 >= tokens.size() or !tokens[at].is_string_literal() or !(tokens[at + 1].is_punctuator(",") or tokens[at + 1].is_punctuator(")")):
+		return -1
+	return at
 
 
 func _get_code_tokens() -> Array[_Token]:

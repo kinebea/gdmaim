@@ -703,6 +703,17 @@ func _obfuscate_script(path : String) -> String:
 			var names : PackedStringArray = found[4]
 			var more : String = " and %d more" % (names.size() - 1) if names.size() > 1 else ""
 			push_warning("GDMaim - %s:%d: %s(\"%s\") picks among the names that %s() gives, which no longer has \"%s\"%s once renamed. Add %s where they are declared to keep their names." % [path, found[0] + 1, found[1], found[2], found[3], names[0], more, lock])
+		for found in obfuscator.find_names_given_by_variable():
+			var names : PackedStringArray = found[4]
+			if !found[1]:
+				push_warning("GDMaim - %s:%d: \"%s\" is a name that gets renamed, but not in this string, which may be the name not written out that %s() in the same function is given. Add %s where it is declared to keep its name, or %s to the line to have the string renamed as well." % [path, found[0] + 1, found[2], found[3], lock, hint])
+				continue
+			var more : String = " and %d more" % (names.size() - 1) if names.size() > 1 else ""
+			var built : String = {"begins_with": "\"%s\" + ...", "ends_with": "... + \"%s\"", "contains": "... + \"%s\" + ..."}[found[1]] % found[2]
+			var no_longer : String = {"begins_with": "begin with", "ends_with": "end with", "contains": "have"}[found[1]]
+			if names.size() == 1:
+				no_longer = {"begins_with": "begins with", "ends_with": "ends with", "contains": "has"}[found[1]]
+			push_warning("GDMaim - %s:%d: %s may build the name that %s() in the same function is given, but \"%s\"%s no longer %s \"%s\" once renamed. Add %s where they are declared to keep their names." % [path, found[0] + 1, built, found[3], names[0], more, no_longer, found[2], lock])
 
 	# Inject startup code into the first autoload
 	if path == _inject_autoload:

@@ -274,7 +274,13 @@ When it exports, GDMaim warns about a string that names something which gets ren
 GDMaim - res://player.gd:12: "on_hit" is a name that gets renamed, but not in this string. Add ##OBFUSCATE_STRINGS to the line to have the string renamed as well.
 ```
 
-A string that is put together, or that is kept in a variable, is not looked at. Neither is a call by a name of Godot, like `call_deferred("queue_free")`, which is not renamed.
+A call by a name of Godot, like `call_deferred("queue_free")`, is not warned about, since that name is not renamed.
+
+When one of those functions is given a name that is not written out, as in `get(property)`, GDMaim looks at the strings of the function the call is in. It warns about a string that is a name which gets renamed, as in `for property in ["speed", "jump"]`, but not about the key of a Dictionary. It also warns about a string put together with something else, as in `"slot_" + kind`, when a name that gets renamed begins or ends with it:
+
+```
+GDMaim - res://ui/slots.gd:24: "_slot_" + ... may build the name that get() in the same function is given, but "_slot_armor" and 6 more no longer begin with "_slot_" once renamed. Add ##LOCK_SYMBOLS where they are declared to keep their names.
+```
 
 It also warns about a function that reads the names of members from `get_method_list()`, `get_script_method_list()`, `get_property_list()`, `get_script_property_list()`, `get_signal_list()`, `get_script_signal_list()` or `get_script_constant_map()`, and picks some by a part of their name with `begins_with()`, `ends_with()`, `contains()`, `containsn()`, `match()` or `matchn()`, when that part is in a name that gets renamed. The warning goes away once those names are locked:
 

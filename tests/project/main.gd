@@ -71,6 +71,7 @@ func _ready() -> void:
 		"export/excluded_paths",
 		"export/names_in_strings",
 		"export/names_by_pattern",
+		"export/names_by_variable",
 		"export/checked_autoloads",
 	]
 	for case_name in cases:

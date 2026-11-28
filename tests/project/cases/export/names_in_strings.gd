@@ -29,6 +29,7 @@ func ns_not_run() -> void:
 	ns_dictionary.get("ns_property")
 	call_deferred("queue_free")
 	call_deferred("ns_unknown")
+	# Warned about as a name that may be built from strings, which the rest of the function is checked for
 	call_deferred("ns_" + "method")
 
 func run_case() -> String:
