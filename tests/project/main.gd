@@ -40,6 +40,7 @@ func _ready() -> void:
 		"parser/class_names",
 		"parser/annotated_members",
 		"parser/member_forms",
+		"parser/newer_syntax",
 		"parser/global_constants",
 		"postprocess/strip_typing",
 		"postprocess/feature_func",
