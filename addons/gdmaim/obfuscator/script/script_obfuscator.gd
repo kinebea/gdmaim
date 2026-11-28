@@ -3,13 +3,13 @@ extends RefCounted
 
 const _Logger := preload("../../logger.gd")
 const _Settings := preload("../../settings.gd")
-const PreprocessorHints := preload("preprocessor_hints.gd")
-const SymbolTable := preload("../symbol_table.gd")
-const Parser := preload("parser/parser.gd")
-const Token := preload("tokenizer/token.gd")
-const Tokenizer := preload("tokenizer/tokenizer.gd")
-const AST := preload("parser/ast.gd")
-const Builtins = preload("../../builtins.gd")
+const _PreprocessorHints := preload("preprocessor_hints.gd")
+const _SymbolTable := preload("../symbol_table.gd")
+const _Parser := preload("parser/parser.gd")
+const _Token := preload("tokenizer/token.gd")
+const _Tokenizer := preload("tokenizer/tokenizer.gd")
+const _AST := preload("parser/ast.gd")
+const _Builtins = preload("../../builtins.gd")
 
 # The functions which take the name of a method, a property or a signal, by the index of that argument
 const NAME_ARGUMENTS : Dictionary = {
@@ -30,25 +30,25 @@ const NAME_PATTERNS : PackedStringArray = ["begins_with", "ends_with", "contains
 var path : String
 var source_code : String
 var generated_code : String
-var parser : Parser
-var tokenizer : Tokenizer
+var parser : _Parser
+var tokenizer : _Tokenizer
 
-var _symbol_table : SymbolTable
-var _ast : AST.ASTNode
+var _symbol_table : _SymbolTable
+var _ast : _AST._ASTNode
 var _encoded_strings : Dictionary # The strings that get exported encoded, and whether a space has to go ahead of them
 var _plain_lines : Dictionary # The lines of source code whose strings a hint keeps from being encoded
 
 func _init(path : String) -> void:
 	self.path = path
 
-func parse(source_code : String, symbol_table : SymbolTable, autoload_symbol : SymbolTable.Symbol = null) -> void:
+func parse(source_code : String, symbol_table : _SymbolTable, autoload_symbol : _SymbolTable._Symbol = null) -> void:
 	# Carriage returns would otherwise end up in comments and their preprocessor hints
 	source_code = source_code.replace("\r\n", "\n")
 	self.source_code = source_code
 	_symbol_table = symbol_table
-	tokenizer = Tokenizer.new()
+	tokenizer = _Tokenizer.new()
 	tokenizer.read(source_code)
-	parser = Parser.new()
+	parser = _Parser.new()
 	_ast = parser.read(tokenizer, symbol_table, autoload_symbol)
 
 func run(features : PackedStringArray) -> bool:
@@ -64,33 +64,33 @@ func run(features : PackedStringArray) -> bool:
 	var _str_processing : bool = false
 	var plain_strings : bool = false
 	while !tokenizer.is_eof():
-		var token : Token = tokenizer.get_next()
-		var next_token : Token = tokenizer.peek()
-		var line : Tokenizer.Line = tokenizer.get_output_line(token.line)
-		var prev_line : Tokenizer.Line = tokenizer.get_output_line(token.line-1)
+		var token : _Token = tokenizer.get_next()
+		var next_token : _Token = tokenizer.peek()
+		var line : _Tokenizer._Line = tokenizer.get_output_line(token.line)
+		var prev_line : _Tokenizer._Line = tokenizer.get_output_line(token.line-1)
 		
-		if token.type == Token.Type.COMMENT:
+		if token.type == _Token._Type.COMMENT:
 			var value : String = token.get_value().strip_edges().trim_prefix(_Settings.current.preprocessor_prefix).get_slice(" ", 0)
 			match value:
-				PreprocessorHints.START_OBFUSCATE_STRINGS:
+				_PreprocessorHints.START_OBFUSCATE_STRINGS:
 					_str_processing = true
-				PreprocessorHints.END_OBFUSCATE_STRINGS:
+				_PreprocessorHints.END_OBFUSCATE_STRINGS:
 					_str_processing = false		
-				PreprocessorHints.START_PLAIN_STRINGS:
+				_PreprocessorHints.START_PLAIN_STRINGS:
 					plain_strings = true
-				PreprocessorHints.END_PLAIN_STRINGS:
+				_PreprocessorHints.END_PLAIN_STRINGS:
 					plain_strings = false
 		
-		if plain_strings or tokenizer.has_source_hint(token.source_line, PreprocessorHints.PLAIN_STRINGS):
+		if plain_strings or tokenizer.has_source_hint(token.source_line, _PreprocessorHints.PLAIN_STRINGS):
 			_plain_lines[token.source_line] = true
 		
 		# Hints for strings go by the line of source code, as several of those may have been merged into one
-		if tokenizer.has_source_hint(token.source_line, PreprocessorHints.OBFUSCATE_STRINGS_SEED):
-			_symbol_table.set_custom_seed(tokenizer.get_source_hint_args(token.source_line, PreprocessorHints.OBFUSCATE_STRINGS_SEED).to_int())
+		if tokenizer.has_source_hint(token.source_line, _PreprocessorHints.OBFUSCATE_STRINGS_SEED):
+			_symbol_table.set_custom_seed(tokenizer.get_source_hint_args(token.source_line, _PreprocessorHints.OBFUSCATE_STRINGS_SEED).to_int())
 		else:
 			_symbol_table.set_custom_seed(0)
 	
-		if _str_processing or tokenizer.has_source_hint(token.source_line, PreprocessorHints.OBFUSCATE_STRINGS):
+		if _str_processing or tokenizer.has_source_hint(token.source_line, _PreprocessorHints.OBFUSCATE_STRINGS):
 			_string_obfuscation(token)
 			
 		else:
@@ -99,8 +99,8 @@ func run(features : PackedStringArray) -> bool:
 		if !_Settings.current.feature_filters:
 			continue
 		
-		if prev_line and prev_line.has_hint(PreprocessorHints.FEATURE_FUNC):
-			_func_feature_filter(token, line, prev_line.get_hint_args(PreprocessorHints.FEATURE_FUNC), features)
+		if prev_line and prev_line.has_hint(_PreprocessorHints.FEATURE_FUNC):
+			_func_feature_filter(token, line, prev_line.get_hint_args(_PreprocessorHints.FEATURE_FUNC), features)
 	
 	if _Settings.current.obfuscation_enabled and _Settings.current.shuffle_top_level:
 		_shuffle_toplevel()
@@ -135,13 +135,13 @@ func _keep_signs_apart() -> void:
 		var begins : bool = true # Nothing but spacing since the line began
 		var i : int = 0
 		while i < line.tokens.size():
-			var token : Token = line.tokens[i]
+			var token : _Token = line.tokens[i]
 			i += 1
-			if token.is_of_type(Token.Type.INDENTATION | Token.Type.WHITESPACE | Token.Type.COMMENT):
+			if token.is_of_type(_Token._Type.INDENTATION | _Token._Type.WHITESPACE | _Token._Type.COMMENT):
 				continue
-			var next : Token = line.tokens[i] if i < line.tokens.size() else null
+			var next : _Token = line.tokens[i] if i < line.tokens.size() else null
 			if begins and (token.is_operator("+") or token.is_operator("-")) and next and _is_number(next.get_value()):
-				line.insert_token(i, Token.new(Token.Type.WHITESPACE, " ", -1, token.line))
+				line.insert_token(i, _Token.new(_Token._Type.WHITESPACE, " ", -1, token.line))
 			begins = token.is_line_break() or token.is_punctuator("\n")
 
 
@@ -185,16 +185,16 @@ func generate_line_mappings() -> Array[Dictionary]:
 	return [mappings_in, mappings_out]
 
 
-func get_class_symbol() -> SymbolTable.Symbol:
+func get_class_symbol() -> _SymbolTable._Symbol:
 	return parser.get_class_symbol() if parser else null
 
 
 # Removes type hints. This is done to the parsed script, so that
 # the types are still there to tell what a symbol belongs to.
 func _strip_static_typing() -> void:
-	const TRIVIA : int = Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.INDENTATION | Token.Type.STATEMENT_BREAK
+	const TRIVIA : int = _Token._Type.WHITESPACE | _Token._Type.COMMENT | _Token._Type.INDENTATION | _Token._Type.STATEMENT_BREAK
 
-	var tokens : Array[Token]
+	var tokens : Array[_Token]
 	for token in tokenizer.get_tokens():
 		if !(token.type & TRIVIA):
 			tokens.append(token)
@@ -204,9 +204,9 @@ func _strip_static_typing() -> void:
 	var exported : bool = false
 	var i : int = 0
 	while i < tokens.size():
-		var token : Token = tokens[i]
+		var token : _Token = tokens[i]
 		if token.is_annotation():
-			if token.get_value().begins_with("@export") and !Builtins.ATTRIBUTES.has(token.get_value()):
+			if token.get_value().begins_with("@export") and !_Builtins.ATTRIBUTES.has(token.get_value()):
 				exported = true
 		elif token.is_keyword("var") or token.is_keyword("const"):
 			# An exported variable needs its type, and a binding in a match pattern has none
@@ -227,7 +227,7 @@ func _strip_static_typing() -> void:
 		i += 1
 
 	for line in tokenizer.get_output_lines():
-		var kept : Array[Token]
+		var kept : Array[_Token]
 		for token in line.tokens:
 			if removed.has(token):
 				# Along with the spacing in front of it
@@ -236,14 +236,14 @@ func _strip_static_typing() -> void:
 				continue
 			kept.append(token)
 			if defaults.has(token):
-				for added : Token in [Token.new(Token.Type.OPERATOR, "=", -1, token.line), Token.new(Token.Type.LITERAL, defaults[token], -1, token.line)]:
+				for added : _Token in [_Token.new(_Token._Type.OPERATOR, "=", -1, token.line), _Token.new(_Token._Type.LITERAL, defaults[token], -1, token.line)]:
 					added.source_line = token.source_line
 					kept.append(added)
 		line.tokens = kept
 
 
 # Strips the type of the variable or constant whose name is at the given index
-func _strip_variable_type(tokens : Array[Token], name_idx : int, is_var : bool, removed : Dictionary, defaults : Dictionary) -> void:
+func _strip_variable_type(tokens : Array[_Token], name_idx : int, is_var : bool, removed : Dictionary, defaults : Dictionary) -> void:
 	var colon : int = name_idx + 1
 	if colon + 1 >= tokens.size() or !tokens[name_idx].is_symbol() or !tokens[colon].is_punctuator(":"):
 		return
@@ -256,7 +256,7 @@ func _strip_variable_type(tokens : Array[Token], name_idx : int, is_var : bool, 
 	if end == -1:
 		return # The colon begins the accessors of a property
 
-	var next : Token = tokens[end] if end < tokens.size() else null
+	var next : _Token = tokens[end] if end < tokens.size() else null
 	var has_value : bool = next != null and next.is_operator("=")
 
 	# Accessors on the same line, like "var x: get = get_x"
@@ -282,7 +282,7 @@ func _strip_variable_type(tokens : Array[Token], name_idx : int, is_var : bool, 
 
 # Strips the types of the parameters and the return type of a function or signal.
 # The index is that of the token after the keyword. Returns the index to go on from.
-func _strip_signature_types(tokens : Array[Token], i : int, removed : Dictionary) -> int:
+func _strip_signature_types(tokens : Array[_Token], i : int, removed : Dictionary) -> int:
 	if i < tokens.size() and tokens[i].is_symbol():
 		i += 1 # The name, which a lambda does not have
 	if i >= tokens.size() or !tokens[i].is_punctuator("("):
@@ -291,7 +291,7 @@ func _strip_signature_types(tokens : Array[Token], i : int, removed : Dictionary
 	var depth : int = 0
 	var at_parameter : bool = false
 	while i < tokens.size():
-		var token : Token = tokens[i]
+		var token : _Token = tokens[i]
 		if token.is_punctuator():
 			i += 1
 			match token.get_value():
@@ -336,7 +336,7 @@ func _strip_signature_types(tokens : Array[Token], i : int, removed : Dictionary
 
 # A whole number that is given to a float is a float, which it has to be without the type as well.
 # The type goes from the colon at the given index up to the end, where the value may follow
-func _keep_float(tokens : Array[Token], colon : int, end : int) -> void:
+func _keep_float(tokens : Array[_Token], colon : int, end : int) -> void:
 	if end != colon + 2 or !tokens[colon + 1].is_symbol("float") or end >= tokens.size() or !tokens[end].is_operator("="):
 		return
 	var i : int = end + 1
@@ -359,7 +359,7 @@ func _keep_float(tokens : Array[Token], colon : int, end : int) -> void:
 
 # Returns the index after the type that begins at the given index, like Array[int] or Tween.EaseType.
 # Returns -1 if there is no type.
-func _find_type_end(tokens : Array[Token], i : int) -> int:
+func _find_type_end(tokens : Array[_Token], i : int) -> int:
 	if i >= tokens.size() or !tokens[i].is_symbol():
 		return -1
 
@@ -388,11 +388,11 @@ func _find_type_end(tokens : Array[Token], i : int) -> int:
 func _get_default_value(type_name : String) -> String:
 	for type in range(TYPE_BOOL, TYPE_MAX):
 		if type != TYPE_OBJECT and type_string(type) == type_name:
-			return Tokenizer.get_default_value(type)
+			return _Tokenizer.get_default_value(type)
 	return ""
 
 
-func _string_obfuscation(token : Token) -> void:
+func _string_obfuscation(token : _Token) -> void:
 	if !token.is_string_literal():
 		return
 	
@@ -463,11 +463,11 @@ func _string_obfuscation(token : Token) -> void:
 	token.set_value(_symbol_table.obfuscate_string_global(str))
 
 
-func _string_param_obfuscation(token : Token, next_token : Token) -> void:
+func _string_param_obfuscation(token : _Token, next_token : _Token) -> void:
 	if !token.symbol or !next_token or !next_token.is_punctuator("("):
 		return
 	
-	var symbol : SymbolTable.Symbol = token.symbol
+	var symbol : _SymbolTable._Symbol = token.symbol
 	if !symbol.has_string_params():
 		return
 	
@@ -497,10 +497,10 @@ func _string_param_obfuscation(token : Token, next_token : Token) -> void:
 ## call_deferred("my_method"): the string stays as it is, unless a hint has it renamed as well.
 ## Each one as [line of source, name]. Takes the output of run()
 func find_unrenamed_names() -> Array:
-	var tokens : Array[Token] = _get_code_tokens()
+	var tokens : Array[_Token] = _get_code_tokens()
 	var found : Array = []
 	for i in tokens.size() - 1:
-		var token : Token = tokens[i]
+		var token : _Token = tokens[i]
 		if !token.is_symbol() or !NAME_ARGUMENTS.has(token.get_value()) or !tokens[i + 1].is_punctuator("("):
 			continue
 		if NAME_ARGUMENTS_OF_SELF.has(token.get_value()) and i >= 2 and tokens[i - 1].is_punctuator(".") and !tokens[i - 2].is_literal("self"):
@@ -529,7 +529,7 @@ func find_unrenamed_names() -> Array:
 		if at + 1 >= tokens.size() or !tokens[at].is_string_literal() or !(tokens[at + 1].is_punctuator(",") or tokens[at + 1].is_punctuator(")")):
 			continue
 		var name : String = tokens[at].get_value(false)
-		var symbol : SymbolTable.Symbol = _symbol_table.find_global_symbol(name)
+		var symbol : _SymbolTable._Symbol = _symbol_table.find_global_symbol(name)
 		if symbol and symbol.get_name() != name:
 			found.append([tokens[at].source_line, name])
 	return found
@@ -539,7 +539,7 @@ func find_unrenamed_names() -> Array:
 # of them, as with begins_with("read_"), does not find those which get renamed. Each call that picks
 # what gets renamed, as [line of source, the method, its argument, the function with the names, the names]
 func find_names_lost_by_pattern() -> Array:
-	var tokens : Array[Token] = _get_code_tokens()
+	var tokens : Array[_Token] = _get_code_tokens()
 	var found : Array = []
 	var list : String # A function of NAME_LISTS that the function the tokens are in calls
 	var picks : Array # The calls of NAME_PATTERNS in that function
@@ -553,7 +553,7 @@ func find_names_lost_by_pattern() -> Array:
 			list = ""
 			picks = []
 			continue
-		var token : Token = tokens[i]
+		var token : _Token = tokens[i]
 		if !token.is_symbol() or i + 1 >= tokens.size() or !tokens[i + 1].is_punctuator("("):
 			continue
 		if NAME_LISTS.has(token.get_value()):
@@ -563,16 +563,16 @@ func find_names_lost_by_pattern() -> Array:
 	return found
 
 
-func _get_code_tokens() -> Array[Token]:
-	var tokens : Array[Token] = []
+func _get_code_tokens() -> Array[_Token]:
+	var tokens : Array[_Token] = []
 	for line in tokenizer.get_output_lines():
 		for token in line.tokens:
-			if !token.is_of_type(Token.Type.INDENTATION | Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.LINE_BREAK | Token.Type.STATEMENT_BREAK):
+			if !token.is_of_type(_Token._Type.INDENTATION | _Token._Type.WHITESPACE | _Token._Type.COMMENT | _Token._Type.LINE_BREAK | _Token._Type.STATEMENT_BREAK):
 				tokens.append(token)
 	return tokens
 
 
-func _func_feature_filter(token : Token, line : Tokenizer.Line, feature : String, features : PackedStringArray) -> void:
+func _func_feature_filter(token : _Token, line : _Tokenizer._Line, feature : String, features : PackedStringArray) -> void:
 	if !token.is_keyword("func") or features.has(feature):
 		return
 
@@ -592,8 +592,8 @@ func _func_feature_filter(token : Token, line : Tokenizer.Line, feature : String
 				break
 
 	# The return type, up to the colon that begins the body
-	var return_type : Array[Token]
-	var colon : Token = null
+	var return_type : Array[_Token]
+	var colon : _Token = null
 	while !tokenizer.is_eof():
 		token = tokenizer.get_next()
 		if token.is_punctuator(":"):
@@ -625,15 +625,15 @@ func _func_feature_filter(token : Token, line : Tokenizer.Line, feature : String
 		func_body += "return " + value
 
 	# The body takes the place of whatever follows the colon
-	var colon_line : Tokenizer.Line = tokenizer.get_output_line(colon.line)
+	var colon_line : _Tokenizer._Line = tokenizer.get_output_line(colon.line)
 	for i in range(colon_line.tokens.size() - 1, colon_line.tokens.find(colon), -1):
 		if !colon_line.tokens[i].is_line_break():
 			colon_line.remove_token(i)
-	colon_line.insert_token(colon_line.tokens.find(colon) + 1, Token.new(Token.Type.KEYWORD, func_body, 0, colon.line))
+	colon_line.insert_token(colon_line.tokens.find(colon) + 1, _Token.new(_Token._Type.KEYWORD, func_body, 0, colon.line))
 
 	var line_idx : int = colon.line + 1
 	while line_idx < tokenizer.get_output_line_count():
-		var tline : Tokenizer.Line = tokenizer.get_output_line(line_idx)
+		var tline : _Tokenizer._Line = tokenizer.get_output_line(line_idx)
 		if tline.has_statement() and tline.get_indentation() <= indentation:
 			break
 		if tline.tokens:
@@ -643,7 +643,7 @@ func _func_feature_filter(token : Token, line : Tokenizer.Line, feature : String
 
 
 func _shuffle_toplevel() -> void:
-	var lines : Array[Tokenizer.Line] = tokenizer.get_output_lines()
+	var lines : Array[_Tokenizer._Line] = tokenizer.get_output_lines()
 	var top_block : Array
 	var on_ready : Array[Array] = []
 	var blocks : Array[Array] = []
@@ -658,23 +658,23 @@ func _shuffle_toplevel() -> void:
 			blocks.append(block)
 	
 	for i in lines.size():
-		var line : Tokenizer.Line = lines[i]
-		var prev_line : Tokenizer.Line = lines[i - 1] if i >= 1 else null
-		var starter_token : Token = line.tokens[0] if line.tokens else null
-		var prev_starter_token : Token = prev_line.tokens[0] if prev_line and prev_line.tokens else null
-		if starter_token and Builtins.STARTER_TOKENS.has(starter_token.get_value()):
+		var line : _Tokenizer._Line = lines[i]
+		var prev_line : _Tokenizer._Line = lines[i - 1] if i >= 1 else null
+		var starter_token : _Token = line.tokens[0] if line.tokens else null
+		var prev_starter_token : _Token = prev_line.tokens[0] if prev_line and prev_line.tokens else null
+		if starter_token and _Builtins.STARTER_TOKENS.has(starter_token.get_value()):
 			var custom : bool = false
 			
-			if starter_token.get_value() in Builtins.DECORATORS:
+			if starter_token.get_value() in _Builtins.DECORATORS:
 				var z : int = i
-				var current_line : Tokenizer.Line = line
+				var current_line : _Tokenizer._Line = line
 				
 				while true:
 					var t : String = ""
 					
 					for x in current_line.tokens.size():
 						var tkn : String = current_line.tokens[x].get_value().strip_edges()
-						if !tkn.is_empty() and !Builtins.DECORATORS.has(tkn):
+						if !tkn.is_empty() and !_Builtins.DECORATORS.has(tkn):
 							t = tkn
 							break
 
@@ -688,7 +688,7 @@ func _shuffle_toplevel() -> void:
 				for itoken in range(0, current_line.tokens.size(), 1):
 					var value : String = current_line.tokens[itoken].get_value().strip_edges()
 					if !value.is_empty():
-						if Builtins.DECORATORS.has(value):
+						if _Builtins.DECORATORS.has(value):
 							continue
 						elif ["class", "func", "var"].has(value):
 							custom = true
@@ -752,7 +752,7 @@ func _shuffle_toplevel() -> void:
 
 
 # Whether the line holds nothing but annotations, which then apply to the line after it
-func _is_annotation_line(line : Tokenizer.Line) -> bool:
+func _is_annotation_line(line : _Tokenizer._Line) -> bool:
 	if !line or !line.tokens or !line.tokens[0].is_annotation():
 		return false
 	for token in line.tokens:
@@ -763,8 +763,8 @@ func _is_annotation_line(line : Tokenizer.Line) -> bool:
 
 # Whether a top-level block declares a variable, as opposed to a function, class, signal, etc.
 func _is_var_block(block : Array) -> bool:
-	for line : Tokenizer.Line in block:
-		for token : Token in line.tokens:
+	for line : _Tokenizer._Line in block:
+		for token : _Token in line.tokens:
 			if token.is_keyword() and !token.is_keyword("static"):
 				return token.is_keyword("var")
 	return false
@@ -775,9 +775,9 @@ func _strip_code() -> void:
 	if _Settings.current.regex_filter_enabled and _Settings.current.regex_filter:
 		regex.compile(_Settings.current.regex_filter)
 	
-	var lines : Array[Tokenizer.Line] = tokenizer.get_output_lines()
+	var lines : Array[_Tokenizer._Line] = tokenizer.get_output_lines()
 	for l in range(lines.size() - 1, -1, -1):
-		var line : Tokenizer.Line = lines[l]
+		var line : _Tokenizer._Line = lines[l]
 		
 		var line_removed : bool = false
 		
@@ -788,22 +788,22 @@ func _strip_code() -> void:
 		
 		if _Settings.current.strip_comments or _Settings.current.strip_extraneous_spacing or _Settings.current.strip_editor_annotations:
 			for i in range(line.tokens.size() - 1, -1, -1):
-				var token : Token = line.tokens[i]
+				var token : _Token = line.tokens[i]
 				
 				# Strip comments
-				if _Settings.current.strip_comments and token.type == Token.Type.COMMENT:
+				if _Settings.current.strip_comments and token.type == _Token._Type.COMMENT:
 					line.remove_token(i)
 					continue
 				
 				# Strip extraneous spacing
 				if _Settings.current.strip_extraneous_spacing:
-					if token.type == Token.Type.INDENTATION and (i == line.tokens.size()-1 or line.tokens[i+1].type == Token.Type.LINE_BREAK):
+					if token.type == _Token._Type.INDENTATION and (i == line.tokens.size()-1 or line.tokens[i+1].type == _Token._Type.LINE_BREAK):
 						line.remove_token(i)
 						continue
-					elif token.type == Token.Type.WHITESPACE:
+					elif token.type == _Token._Type.WHITESPACE:
 						var prev_type : int = line.tokens[i-1].type
-						var next_type : int = line.tokens[i+1].type if i+1 < line.tokens.size() else Token.Type.NONE
-						if i == 0 or prev_type == Token.Type.OPERATOR or prev_type == Token.Type.PUNCTUATOR or (next_type == Token.Type.OPERATOR and prev_type != Token.Type.KEYWORD) or next_type == Token.Type.PUNCTUATOR:
+						var next_type : int = line.tokens[i+1].type if i+1 < line.tokens.size() else _Token._Type.NONE
+						if i == 0 or prev_type == _Token._Type.OPERATOR or prev_type == _Token._Type.PUNCTUATOR or (next_type == _Token._Type.OPERATOR and prev_type != _Token._Type.KEYWORD) or next_type == _Token._Type.PUNCTUATOR:
 							line.remove_token(i)
 							continue
 				
@@ -811,26 +811,26 @@ func _strip_code() -> void:
 				if _Settings.current.strip_editor_annotations:
 					if token.is_annotation():
 						# These annotations can only be on their own line
-						if token.get_value() in Builtins.ATTRIBUTES:
+						if token.get_value() in _Builtins.ATTRIBUTES:
 							tokenizer.remove_output_line(l)
 							line_removed = true
 							break
-						elif token.get_value() in Builtins.DECORATORS:
+						elif token.get_value() in _Builtins.DECORATORS:
 							continue
 						# These might have parenthesis after them, with whitespace possibly after the parenthesis
 						# @export on a variable stays: it is not only for the editor, but also decides
 						# what duplicate(), local-to-scene and ResourceSaver copy
-						elif token.get_value() in Builtins.ANNOTATIONS and !line.has_hint(PreprocessorHints.PRESERVE_ANNOTATION):
+						elif token.get_value() in _Builtins.ANNOTATIONS and !line.has_hint(_PreprocessorHints.PRESERVE_ANNOTATION):
 							line.remove_token(i)
 							if line.tokens.size() > i and line.tokens[i].is_punctuator("("):
 								# The arguments, which may hold brackets of their own and go on in the lines after
 								var depth : int = 0
 								var arg_line : int = l
 								while arg_line < lines.size():
-									var arg_tokens : Array[Token] = lines[arg_line].tokens
+									var arg_tokens : Array[_Token] = lines[arg_line].tokens
 									var at : int = i if arg_line == l else 0
 									while arg_tokens.size() > at:
-										var last_token : Token = arg_tokens[at]
+										var last_token : _Token = arg_tokens[at]
 										arg_tokens.remove_at(at)
 										if last_token.is_punctuator("("):
 											depth += 1
@@ -854,7 +854,7 @@ func _strip_code() -> void:
 
 
 # Whether the line of source code the output line begins on matches the expression
-func _matches_source(line : Tokenizer.Line, regex : RegEx) -> bool:
+func _matches_source(line : _Tokenizer._Line, regex : RegEx) -> bool:
 	for token in line.tokens:
 		if token.source_line != -1:
 			return regex.search(tokenizer.get_source_line(token.source_line)) != null
@@ -862,8 +862,8 @@ func _matches_source(line : Tokenizer.Line, regex : RegEx) -> bool:
 
 
 # Removes the statement that begins on the given output line
-func _strip_statement(lines : Array[Tokenizer.Line], l : int) -> void:
-	var line : Tokenizer.Line = lines[l]
+func _strip_statement(lines : Array[_Tokenizer._Line], l : int) -> void:
+	var line : _Tokenizer._Line = lines[l]
 	var indentation : int = line.get_indentation()
 
 	# The lines the statement goes on in, as long as it has an open bracket
@@ -881,12 +881,12 @@ func _strip_statement(lines : Array[Tokenizer.Line], l : int) -> void:
 	last = mini(last, lines.size() - 1)
 
 	# A block cannot be empty, so its only statement is replaced
-	var before : Tokenizer.Line = null
+	var before : _Tokenizer._Line = null
 	for i in range(l - 1, -1, -1):
 		if lines[i].has_statement():
 			before = lines[i]
 			break
-	var after : Tokenizer.Line = null
+	var after : _Tokenizer._Line = null
 	for i in range(last + 1, lines.size()):
 		if lines[i].has_statement():
 			after = lines[i]
@@ -896,9 +896,9 @@ func _strip_statement(lines : Array[Tokenizer.Line], l : int) -> void:
 	for i in range(last, l, -1):
 		lines.remove_at(i)
 	if is_whole_block:
-		var kept : Array[Token] = [line.tokens[0], Token.new(Token.Type.KEYWORD, "pass", -1, -1)]
+		var kept : Array[_Token] = [line.tokens[0], _Token.new(_Token._Type.KEYWORD, "pass", -1, -1)]
 		if line.tokens.back().is_line_break() or (last > l):
-			kept.append(Token.new(Token.Type.LINE_BREAK, "\n", -1, -1))
+			kept.append(_Token.new(_Token._Type.LINE_BREAK, "\n", -1, -1))
 		line.tokens = kept
 	else:
 		lines.remove_at(l)
@@ -907,14 +907,14 @@ func _strip_statement(lines : Array[Tokenizer.Line], l : int) -> void:
 # Picks the strings that get exported encoded: all but the ones GDScript wants as constants,
 # which a call that decodes a string is not
 func _encode_strings() -> void:
-	var lines : Array[Tokenizer.Line] = tokenizer.get_output_lines()
+	var lines : Array[_Tokenizer._Line] = tokenizer.get_output_lines()
 	var blocks : Array = [] # The statements the line is nested in: their indentation, and whether they are a match
 	var statement_line : int = 0
 	var depth : int = 0
 	var constant : bool = false
 	var after_annotation : bool = false
 	for l in lines.size():
-		var tokens : Array[Token] = lines[l].tokens
+		var tokens : Array[_Token] = lines[l].tokens
 		var first : int = _find_statement(tokens, 0)
 		if first == -1:
 			continue
@@ -941,7 +941,7 @@ func _encode_strings() -> void:
 			line_constant = _takes_constants(tokens, first) or _is_nested_pattern(lines, statement_line, l)
 
 		for i in range(first, tokens.size()):
-			var token : Token = tokens[i]
+			var token : _Token = tokens[i]
 			if token.is_punctuator():
 				if "([{".contains(token.get_value()):
 					depth += 1
@@ -952,21 +952,21 @@ func _encode_strings() -> void:
 					var next : int = _find_statement(tokens, i + 1)
 					constant = next != -1 and _takes_constants(tokens, next)
 					line_constant = constant
-			elif token.type == Token.Type.STRING_LITERAL and !line_constant and !_plain_lines.has(token.source_line) and _can_encode_string(tokens, i):
-				_encoded_strings[token] = tokens[i - 1].is_of_type(Token.Type.KEYWORD | Token.Type.SYMBOL | Token.Type.LITERAL | Token.Type.NUMBER_LITERAL) if i > 0 else false
+			elif token.type == _Token._Type.STRING_LITERAL and !line_constant and !_plain_lines.has(token.source_line) and _can_encode_string(tokens, i):
+				_encoded_strings[token] = tokens[i - 1].is_of_type(_Token._Type.KEYWORD | _Token._Type.SYMBOL | _Token._Type.LITERAL | _Token._Type.NUMBER_LITERAL) if i > 0 else false
 
 
 # The first token from the given one on which is part of a statement, -1 if there is none
-func _find_statement(tokens : Array[Token], from : int) -> int:
+func _find_statement(tokens : Array[_Token], from : int) -> int:
 	for i in range(from, tokens.size()):
-		if !tokens[i].is_of_type(Token.Type.INDENTATION | Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.LINE_BREAK):
+		if !tokens[i].is_of_type(_Token._Type.INDENTATION | _Token._Type.WHITESPACE | _Token._Type.COMMENT | _Token._Type.LINE_BREAK):
 			return i
 	return -1
 
 
 # Whether the statement which begins with the given token is one whose strings have to be constants,
 # or one where it is not worth finding out which of them have to be
-func _takes_constants(tokens : Array[Token], first : int) -> bool:
+func _takes_constants(tokens : Array[_Token], first : int) -> bool:
 	if tokens[first].is_annotation():
 		return true
 	var i : int = first
@@ -977,7 +977,7 @@ func _takes_constants(tokens : Array[Token], first : int) -> bool:
 
 # Whether a line inside the brackets of a statement is a pattern of a match:
 # the line it is nested in is the one before it that is indented less
-func _is_nested_pattern(lines : Array[Tokenizer.Line], statement_line : int, l : int) -> bool:
+func _is_nested_pattern(lines : Array[_Tokenizer._Line], statement_line : int, l : int) -> bool:
 	var indentation : int = lines[l].get_indentation()
 	for i in range(l - 1, statement_line, -1):
 		var first : int = _find_statement(lines[i].tokens, 0)
@@ -987,8 +987,8 @@ func _is_nested_pattern(lines : Array[Tokenizer.Line], statement_line : int, l :
 
 
 # Whether the string is one that can be put together when the game runs
-func _can_encode_string(tokens : Array[Token], i : int) -> bool:
-	var token : Token = tokens[i]
+func _can_encode_string(tokens : Array[_Token], i : int) -> bool:
+	var token : _Token = tokens[i]
 	if !(token.decorator in ["\"", "'"]) or token.get_value(false).contains("\n"):
 		return false
 	if i == 0:
@@ -1013,7 +1013,7 @@ func _can_encode_string(tokens : Array[Token], i : int) -> bool:
 
 
 # The code that takes the place of a string which gets exported encoded
-func _get_encoded_string(token : Token) -> String:
+func _get_encoded_string(token : _Token) -> String:
 	var text = _get_string_text(token.get_value(false))
 	if text == null or text.is_empty():
 		return token.get_value()
@@ -1056,7 +1056,7 @@ func _get_string_text(written : String):
 
 
 func _is_exclude_required(src : String) -> bool:
-	var _str : String = "{0}{1}".format([_Settings.current.preprocessor_prefix, PreprocessorHints.EXCLUDE_HINT])
+	var _str : String = "{0}{1}".format([_Settings.current.preprocessor_prefix, _PreprocessorHints.EXCLUDE_HINT])
 	var x : int = src.find(_str)
 	
 	if x < 0:
@@ -1081,7 +1081,7 @@ func check_exclusion_source(path : String, source_code : String) -> void:
 	if !_is_exclude_path(path) and !_is_exclude_required(source_code):
 		return
 	tokenizer.reset()
-	var token : Token = tokenizer.get_next()
+	var token : _Token = tokenizer.get_next()
 	while token:
 		if token.symbol and token.is_symbol():
 			_symbol_table.lock_symbol(token.symbol)

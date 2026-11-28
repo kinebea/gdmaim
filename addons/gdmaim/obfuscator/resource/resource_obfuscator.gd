@@ -3,7 +3,7 @@ extends RefCounted
 
 const _Logger := preload("../../logger.gd")
 const _Settings := preload("../../settings.gd")
-const SymbolTable := preload("../symbol_table.gd")
+const _SymbolTable := preload("../symbol_table.gd")
 const Resources : PackedStringArray = ["tres", "res", "gdshader"]
 const PATH_RESOURCES : PackedStringArray = ["Animation", "SceneReplicationConfig", "AnimationNodeStateMachineTransition"]
 
@@ -23,7 +23,7 @@ func _init(path : String) -> void:
 	self.path = path
 
 
-func run(source_data : String, symbol_table : SymbolTable) -> bool:
+func run(source_data : String, symbol_table : _SymbolTable) -> bool:
 	_source_data = source_data
 	_data = ""
 	
@@ -57,7 +57,7 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 						continue
 					
 					var name : String = token.substr(start + 1, end - (start + 1))
-					var new_symbol : SymbolTable.Symbol = symbol_table.find_global_symbol(name)
+					var new_symbol : _SymbolTable._Symbol = symbol_table.find_global_symbol(name)
 					if new_symbol:
 						var quoted_at : int = line.find('"' + name + '"', line.find(token))
 						line = line.substr(0, quoted_at + 1) + str(new_symbol.name) + line.substr(quoted_at + 1 + name.length())
@@ -73,7 +73,7 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 				var start : int = finder + script_class.length()
 				var end : int = line.find('"', start)
 				var to_replace : String = line.substr(start, end - start)
-				var new_symbol : SymbolTable.Symbol = symbol_table.find_global_symbol(to_replace)
+				var new_symbol : _SymbolTable._Symbol = symbol_table.find_global_symbol(to_replace)
 				if new_symbol:
 					line = line.replace('script_class="{0}"'.format([to_replace]),'script_class="{0}"'.format([new_symbol.name]))
 					_Logger.write(str(i+1) + " found script_class = '" + to_replace)
@@ -129,20 +129,20 @@ func run(source_data : String, symbol_table : SymbolTable) -> bool:
 							var properties : PackedStringArray = node_path.split(":")
 							var new_path : String = properties[0]
 							for property in properties.slice(1):
-								var new_symbol : SymbolTable.Symbol = symbol_table.find_global_symbol(property)
+								var new_symbol : _SymbolTable._Symbol = symbol_table.find_global_symbol(property)
 								new_path += ":" + (str(new_symbol.name) if new_symbol else property)
 							tokens[1] = 'NodePath("' + new_path + '")'
 							line = tokens[0] + " = " + tokens[1]
 							if node_path != new_path:
 								_Logger.write(str(i+1) + " found node path '" + node_path + "' = " + new_path)
 						
-						var new_symbol : SymbolTable.Symbol = symbol_table.find_global_symbol(tokens[0])
+						var new_symbol : _SymbolTable._Symbol = symbol_table.find_global_symbol(tokens[0])
 						if new_symbol:
 							line = str(new_symbol.name) + " = " + tokens[1]
 							_Logger.write(str(i+1) + " found export var '" + tokens[0] + "' = " + str(new_symbol.name))
 					elif line.begins_with('"method":'):
 						var method : String = _read_string(line.trim_prefix('"method":'))
-						var new_symbol : SymbolTable.Symbol = symbol_table.find_global_symbol(method)
+						var new_symbol : _SymbolTable._Symbol = symbol_table.find_global_symbol(method)
 						if new_symbol:
 							# Only the name is replaced, the line stays as it is otherwise
 							var name_at : int = line.find('"' + method + '"', 8)
@@ -187,7 +187,7 @@ func _find_string_lines(lines : PackedStringArray) -> PackedByteArray:
 	return result
 
 # Renames the properties and methods used in an expression, which is given the way it is stored: quoted and escaped
-func _rename_expression(value : String, symbol_table : SymbolTable) -> String:
+func _rename_expression(value : String, symbol_table : _SymbolTable) -> String:
 	var result : String
 	var id : String
 	var quote : String # Of the string within the expression that is being read, if any
@@ -201,7 +201,7 @@ func _rename_expression(value : String, symbol_table : SymbolTable) -> String:
 			continue
 
 		if !id.is_empty():
-			var symbol : SymbolTable.Symbol = symbol_table.find_global_symbol(id)
+			var symbol : _SymbolTable._Symbol = symbol_table.find_global_symbol(id)
 			result += str(symbol.name) if symbol else id
 			id = ""
 

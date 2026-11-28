@@ -1,7 +1,7 @@
 extends RefCounted
 
 
-enum Type {
+enum _Type {
 	NONE = 0,
 	SYMBOL = 2**0,
 	KEYWORD = 2**1,
@@ -20,20 +20,20 @@ enum Type {
 	STATEMENT_BREAK = 2**14,
 }
 
-const StringRef := preload("../../string_ref.gd")
-const SymbolTable := preload("../../symbol_table.gd")
+const _StringRef := preload("../../string_ref.gd")
+const _SymbolTable := preload("../../symbol_table.gd")
 
-var type : Type
+var type : _Type
 var idx : int
 var line : int
 var source_line : int = -1 # Line of the source code it is from, if any
 var decorator : String
-var symbol : SymbolTable.Symbol
+var symbol : _SymbolTable._Symbol
 
-var _value := StringRef.new()
+var _value := _StringRef.new()
 
 
-func _init(type : Type, value : String, idx : int, line : int, decorator : String = "") -> void:
+func _init(type : _Type, value : String, idx : int, line : int, decorator : String = "") -> void:
 	self.type = type
 	self.idx = idx
 	self.line = line
@@ -58,11 +58,11 @@ func get_value(decorated : bool = true) -> String:
 	return decorator + str(_value) + decorator
 
 
-func link_value(root : StringRef) -> void:
+func link_value(root : _StringRef) -> void:
 	_value.link(root)
 
 
-func link_symbol(symbol : SymbolTable.Symbol) -> void:
+func link_symbol(symbol : _SymbolTable._Symbol) -> void:
 	self.symbol = symbol
 	_value.link(symbol.name)
 
@@ -72,62 +72,62 @@ func has_value(value : String) -> bool:
 
 
 func is_symbol(value : String = "") -> bool:
-	return type == Type.SYMBOL and (!value or get_value() == value)
+	return type == _Type.SYMBOL and (!value or get_value() == value)
 
 
 func is_keyword(value : String = "") -> bool:
-	return type == Type.KEYWORD and (!value or get_value() == value)
+	return type == _Type.KEYWORD and (!value or get_value() == value)
 
 
 func is_literal(value : String = "") -> bool:
-	return type == Type.LITERAL and (!value or get_value() == value)
+	return type == _Type.LITERAL and (!value or get_value() == value)
 
 
 func is_number_literal(value : String = "") -> bool:
-	return type == Type.NUMBER_LITERAL and (!value or get_value() == value)
+	return type == _Type.NUMBER_LITERAL and (!value or get_value() == value)
 
 
 func is_string_literal(value : String = "") -> bool:
-	return (type == Type.STRING_LITERAL or type == Type.STRING_MULTI_LINE) and (!value or get_value() == value)
+	return (type == _Type.STRING_LITERAL or type == _Type.STRING_MULTI_LINE) and (!value or get_value() == value)
 
 func is_string_multiline(value : String = "") -> bool:
-	return type == Type.STRING_MULTI_LINE and (!value or get_value() == value)
+	return type == _Type.STRING_MULTI_LINE and (!value or get_value() == value)
 
 
 func is_node_path(value : String = "") -> bool:
-	return type == Type.NODE_PATH and (!value or get_value() == value)
+	return type == _Type.NODE_PATH and (!value or get_value() == value)
 
 
 func is_annotation(value : String = "") -> bool:
-	return type == Type.ANNOTATION and (!value or get_value() == value)
+	return type == _Type.ANNOTATION and (!value or get_value() == value)
 
 
 func is_punctuator(value : String = "") -> bool:
-	return type == Type.PUNCTUATOR and (!value or get_value() == value)
+	return type == _Type.PUNCTUATOR and (!value or get_value() == value)
 
 
 func is_operator(value : String = "") -> bool:
-	return type == Type.OPERATOR and (!value or get_value() == value)
+	return type == _Type.OPERATOR and (!value or get_value() == value)
 
 
 func is_comment(value : String = "") -> bool:
-	return type == Type.COMMENT and (!value or get_value() == value)
+	return type == _Type.COMMENT and (!value or get_value() == value)
 
 
 func is_whitespace(value : String = "") -> bool:
-	return type == Type.WHITESPACE and (!value or get_value() == value)
+	return type == _Type.WHITESPACE and (!value or get_value() == value)
 
 
 func is_indentation(value : String = "") -> bool:
-	return type == Type.INDENTATION and (!value or get_value() == value)
+	return type == _Type.INDENTATION and (!value or get_value() == value)
 
 
 func is_line_break(value : String = "") -> bool:
-	return type == Type.LINE_BREAK and (!value or get_value() == value)
+	return type == _Type.LINE_BREAK and (!value or get_value() == value)
 
 
 func is_statement_break(value : String = "") -> bool:
-	return type == Type.STATEMENT_BREAK and (!value or get_value() == value)
+	return type == _Type.STATEMENT_BREAK and (!value or get_value() == value)
 
 
 func is_of_type(type_bitflags : int) -> bool:

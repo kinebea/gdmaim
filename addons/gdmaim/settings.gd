@@ -4,7 +4,7 @@ extends RefCounted
 
 const _Settings := preload("settings.gd")
 
-enum ExportMode {
+enum _ExportMode {
 	TEXT = 0,
 	BINARY,
 	COMPRESSED,
@@ -42,7 +42,7 @@ var source_map_inject_name : bool = true
 var debug_scripts : PackedStringArray
 var debug_resources : PackedStringArray
 var obfuscate_debug_only : bool = false
-var export_mode : int = ExportMode.TEXT
+var export_mode : int = _ExportMode.TEXT
 var encode_strings : bool = false
 var verify_scripts : bool = false
 
@@ -80,7 +80,7 @@ var space_as_tabs : int = -1:
 		
 var _cfg := ConfigFile.new()
 var _entries : Dictionary
-var _categories : Array[Category]
+var _categories : Array[_Category]
 var _initialized : bool = false
 
 static var current : _Settings
@@ -120,7 +120,7 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 	add_entry("regex_filter_enabled", "regex_filter_enabled", "Strip Lines Matching RegEx", "If true, any lines matching the regular expression will be removed from the obfuscated code.")
 	add_entry("regex_filter", "regex_filter", "", "Enter Regular Expression")
 	add_entry("feature_filters", "feature_filters", "Process Feature Filters", "If true, export template feature tags may be used to filter code.")
-	add_entry("export_mode", "export_mode", "Export Mode", "Sets the exported script format.\nText: easier debugging\nBinary: faster loading\nCompressed: smaller files").set_custom_type(Entry.CustomType.OPTIONS, ["Text", "Binary", "Compressed"])
+	add_entry("export_mode", "export_mode", "Export Mode", "Sets the exported script format.\nText: easier debugging\nBinary: faster loading\nCompressed: smaller files").set_custom_type(_Entry._CustomType.OPTIONS, ["Text", "Binary", "Compressed"])
 	add_entry("encode_strings", "encode_strings", "Encode Strings", "If true, the strings of scripts are exported Base64 encoded and decoded when the game runs, so that their text does not show in the exported scripts.\nNote: This is no encryption, anyone who reads the scripts can decode them. Decoding takes time whenever the line runs.\nStrings which have to be constants stay as they are, like the ones in constants, annotations, match patterns and preload().")
 	add_entry("verify_scripts","verify_scripts", "Check Exported Scripts", "If true, loads every script of the exported pack once the export is done and reports the ones that do not compile, with the line and the names of the source.\nNote: Runs the static initializers of the scripts and _init() of the autoloads. Only for exports which write a pack file.")
 	
@@ -138,7 +138,7 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 	add_entry("source_map_inject_name", "inject_name", "Inject Name", "If true, upon export, injects a print statement of the associated source map's filename into the first enabled autoload. This does not affect your source code. Makes selecting the right source map very easy, when a player/user reports an error and shares their logfile.")
 	
 	set_category("exclude_files_category", "Exclusion")
-	add_entry("_exclude_files", "multi_filepath", "Path", "Select files or folders to be excluded from obfuscation; excluded scripts will maintain compatibility with the other obfuscated scripts.\nPaths are separated by ';' and start at res://, like 'res://addons/some_addon;res://scripts/save_data.gd'.").set_custom_type(Entry.CustomType.MULTI_FILE_PATH, "")
+	add_entry("_exclude_files", "multi_filepath", "Path", "Select files or folders to be excluded from obfuscation; excluded scripts will maintain compatibility with the other obfuscated scripts.\nPaths are separated by ';' and start at res://, like 'res://addons/some_addon;res://scripts/save_data.gd'.").set_custom_type(_Entry._CustomType.MULTI_FILE_PATH, "")
 	add_entry("exclude_resources", "resources", "Exclude Resources", "If true, resources like PackedScenes will be ignored during scanning.\nThis is useful if you typically have a lot of embedded resources in your resources and causing problems such as freezing.\n\n(WARNING) This could cause errors if you reference scripts within your packaged scenes, such as signals or exported variables. (Source of embedded scripts are the exception)\n\nRemember that this can be solved by following the best practices recommended in the official repository.")
 	add_entry("use_custom_token_ignore_file", "custom_tokens_enabled", "Custom Tokens File", "If true, any token defined by you in\n'{0}'\nwill be ignored".format([custom_token_ignore_file_path]))
 	add_entry("use_custom_token_as_regex", "custom_tokens_as_regex_enabled", "Custom Tokens as regex", "If true, any token defined by you in\n'{0}'\nwill be read as regex setence.\n\nRequire 'Custom Tokens File' Enabled".format([custom_token_ignore_file_path]))
@@ -154,11 +154,11 @@ func initialize_settings(make_as_global_settings : bool = false, force_load_conf
 
 
 func set_category(cfg_region : String, visible_name : String) -> void:
-	_categories.append(Category.new(cfg_region, visible_name))
+	_categories.append(_Category.new(cfg_region, visible_name))
 
 
-func add_entry(var_name : String, cfg_key : String, visible_name : String, tooltip : String) -> Entry:
-	_entries[var_name] = Entry.new(var_name, _categories.back().cfg_region, cfg_key, visible_name, tooltip)
+func add_entry(var_name : String, cfg_key : String, visible_name : String, tooltip : String) -> _Entry:
+	_entries[var_name] = _Entry.new(var_name, _categories.back().cfg_region, cfg_key, visible_name, tooltip)
 	_categories.back().entries.append(_entries[var_name])
 	_cfg.set_value(_categories.back().cfg_region, cfg_key, get(var_name))
 	return _entries[var_name]
@@ -190,7 +190,7 @@ func deserialize() -> void:
 	_read_entries()
 
 
-func get_categories() -> Array[Category]:
+func get_categories() -> Array[_Category]:
 	return _categories
 
 
@@ -212,18 +212,18 @@ func get_tokens_rgx() -> Array:
 	return custom_token_regex_buffer
 
 
-class Category:
+class _Category:
 	var cfg_region : String
 	var visible_name : String
-	var entries : Array[Entry]
+	var entries : Array[_Entry]
 	
 	func _init(cfg_region : String, visible_name : String) ->void:
 		self.cfg_region = cfg_region
 		self.visible_name = visible_name
 
 
-class Entry:
-	enum CustomType {
+class _Entry:
+	enum _CustomType {
 		NONE = 0,
 		OPTIONS,
 		MULTI_FILE_PATH
@@ -235,7 +235,7 @@ class Entry:
 	var visible_name : String
 	var tooltip : String
 	var disabled : bool = false
-	var custom_type : CustomType = CustomType.NONE
+	var custom_type : _CustomType = _CustomType.NONE
 	var custom_data
 	
 	func _init(var_name : String, cfg_region : String, cfg_key : String, visible_name : String, tooltip : String) ->void:
@@ -245,6 +245,6 @@ class Entry:
 		self.visible_name = visible_name
 		self.tooltip = tooltip
 	
-	func set_custom_type(custom_type : CustomType, custom_data) -> void:
+	func set_custom_type(custom_type : _CustomType, custom_data) -> void:
 		self.custom_type = custom_type
 		self.custom_data = custom_data

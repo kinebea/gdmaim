@@ -61,6 +61,19 @@ cp -r "$tests/project/." "$project"
 cp -r "$addon" "$project/addons/gdmaim"
 # What an earlier export may have left in the addon
 rm -rf "$project/addons/gdmaim/source_maps" "$project/addons/gdmaim/backup" "$project/addons/gdmaim/export.cfg"
+# A game may have a class named as a class or a script of the addon is, which the addon must still compile
+# with. Not one named as a class of Godot is, which no game can have
+mkdir -p "$project/clashing_names" "$work/classes"
+touch "$work/classes/project.godot"
+printf 'extends SceneTree\nfunc _init() -> void:\n\tfor name in OS.get_cmdline_user_args():\n\t\tif !ClassDB.class_exists(name):\n\t\t\tprint("class: ", name)\n\tquit()\n' > "$work/classes/classes.gd"
+names="$(grep -r -h -o -E --include=*.gd '^\s*(class|enum|const) _*[A-Za-z0-9]+( extends [A-Za-z.]+)?:?( *:?= *preload)?' "$addon" \
+	| grep -E '^\s*(class|enum) |preload$' | sed -E 's/^\s*(class|enum|const) _*([A-Za-z0-9]+).*/\2/' | sort -u)"
+limit 120 "$godot" --headless --path "$work/classes" -s classes.gd -- $names 2> /dev/null | tr -d '\r' | sed -n 's/^class: //p' \
+	| while read -r name; do printf 'class_name %s\nextends RefCounted\n' "$name" > "$project/clashing_names/$name.gd"; done
+if [ -z "$(ls "$project/clashing_names")" ]; then
+	echo "No class could be named as one of the addon is, see $work/classes"
+	exit 2
+fi
 mkdir -p "$project/.gdmaim" "$project/out"
 touch "$project/.gdmaim/.gdignore" "$project/out/.gdignore"
 

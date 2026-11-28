@@ -3,8 +3,8 @@ extends RefCounted
 
 const _Logger := preload("../logger.gd")
 const _Settings := preload("../settings.gd")
-const StringRef := preload("string_ref.gd")
-const AST := preload("script/parser/ast.gd")
+const _StringRef := preload("string_ref.gd")
+const _AST := preload("script/parser/ast.gd")
 
 # The type of a variable set to what a function returns, ahead of the name of that function
 const RETURNED_BY : String = "returned by "
@@ -15,9 +15,9 @@ var settings : _Settings
 var _seed : int
 var _locked_symbols : Dictionary
 var _global_symbols : Dictionary
-var _local_symbols : Array[Symbol]
+var _local_symbols : Array[_Symbol]
 var _export_symbols : Dictionary
-var _symbol_paths : Array[SymbolPath]
+var _symbol_paths : Array[_SymbolPath]
 var _id_list : PackedStringArray
 var _id_table : Dictionary
 var _unique_ids : Dictionary
@@ -40,7 +40,7 @@ func lock_symbol_name(name : String) -> void:
 	_locked_symbols[name] = true
 
 
-func lock_symbol(symbol : Symbol) -> void:
+func lock_symbol(symbol : _Symbol) -> void:
 	var lidx : int = _local_symbols.find(symbol)
 	if lidx != -1:
 		_local_symbols.remove_at(lidx)
@@ -50,15 +50,15 @@ func lock_symbol(symbol : Symbol) -> void:
 func set_custom_seed(new_seed : int = 0) -> void:
 	_custom_seed = new_seed
 
-func create_symbol(ast_node : AST.ASTNode, name : String, type : String = "") -> Symbol:
-	if ast_node.get_parent() is AST.Sequence and ast_node.get_parent().get_parent() is AST.Class:
+func create_symbol(ast_node : _AST._ASTNode, name : String, type : String = "") -> _Symbol:
+	if ast_node.get_parent() is _AST._Sequence and ast_node.get_parent().get_parent() is _AST._Class:
 		return create_global_symbol(name, type)
 	else:
 		return create_local_symbol(name, type)
 
 
-func create_export_symbol(name : String, type : String = "") -> Symbol:
-	var symbol : Symbol = create_global_symbol(name, type)
+func create_export_symbol(name : String, type : String = "") -> _Symbol:
+	var symbol : _Symbol = create_global_symbol(name, type)
 	_export_symbols[name] = symbol
 	
 	if !settings.obfuscate_export_vars:
@@ -67,25 +67,25 @@ func create_export_symbol(name : String, type : String = "") -> Symbol:
 	return symbol
 
 
-func create_global_symbol(name : String, type : String = "") -> Symbol:
-	var symbol : Symbol = _global_symbols.get(name)
+func create_global_symbol(name : String, type : String = "") -> _Symbol:
+	var symbol : _Symbol = _global_symbols.get(name)
 	if !symbol:
-		symbol = Symbol.new(name)
+		symbol = _Symbol.new(name)
 		_global_symbols[name] = symbol
 	_global_types[name] = type if _global_types.get(name, type) == type else ""
 	
-	return Symbol.new_linked(type, symbol)
+	return _Symbol.new_linked(type, symbol)
 
 
-func create_local_symbol(name : String, type : String = "") -> Symbol:
-	var symbol := Symbol.new(name, type)
+func create_local_symbol(name : String, type : String = "") -> _Symbol:
+	var symbol := _Symbol.new(name, type)
 	_local_symbols.append(symbol)
 	
 	return symbol
 
 
-func create_symbol_path(ast_node : AST.ASTNode) -> SymbolPath:
-	var path := SymbolPath.new()
+func create_symbol_path(ast_node : _AST._ASTNode) -> _SymbolPath:
+	var path := _SymbolPath.new()
 	path.set_ast(ast_node)
 	_symbol_paths.append(path)
 	
@@ -101,11 +101,11 @@ func is_class_name(name : String) -> bool:
 	return _class_names.has(name)
 
 
-func find_global_symbol(symbol : String) -> Symbol:
+func find_global_symbol(symbol : String) -> _Symbol:
 	return _global_symbols.get(symbol)
 
 
-func find_export_symbol(symbol : String) -> Symbol:
+func find_export_symbol(symbol : String) -> _Symbol:
 	return _export_symbols.get(symbol)
 
 
@@ -131,7 +131,7 @@ static func _picks(name : String, method : String, argument : String) -> bool:
 	return false
 
 
-func rename_symbol(symbol : Symbol, target : String) -> void:
+func rename_symbol(symbol : _Symbol, target : String) -> void:
 	#if _locked_symbols.has(symbol.get_name()): #NOTE obfuscation does its own check
 		#return
 	
@@ -142,15 +142,15 @@ func resolve_symbol_paths() -> void:
 	for symbol_path in _symbol_paths:
 		var log : String = "Line " + str(symbol_path.line + 1) + " | " + str(symbol_path) + " |"
 		
-		var cur : Symbol
+		var cur : _Symbol
 		var maybe_local : bool = symbol_path.maybe_local
 		for symbol in symbol_path.symbols:
 			log += " [" + symbol.get_name() + "="
 			if cur:
-				var child : Symbol = cur.children.get(symbol.get_name())
+				var child : _Symbol = cur.children.get(symbol.get_name())
 				log += "CHILD" if child else ""
 				if !child:
-					var owner : Symbol = _class_of(cur)
+					var owner : _Symbol = _class_of(cur)
 					child = owner.children.get(symbol.get_name()) if owner else null
 					log += "MEMBER OF " + owner.get_name() if child else ""
 				cur = child
@@ -179,9 +179,9 @@ func resolve_symbol_paths() -> void:
 
 # The named class that the symbol is declared to be of, as in "var fsm : FSM". A member declared in another
 # script is known by its name, so each declaration of that name has to be written with the same class
-func _class_of(symbol : Symbol) -> Symbol:
+func _class_of(symbol : _Symbol) -> _Symbol:
 	var type : String = symbol.type
-	var global : Symbol = _global_symbols.get(symbol.get_name())
+	var global : _Symbol = _global_symbols.get(symbol.get_name())
 	if !type and global and symbol.get_root() == global:
 		type = _global_types.get(symbol.get_name(), "")
 	return find_global_symbol(type) if is_class_name(type) else null
@@ -190,15 +190,15 @@ func _class_of(symbol : Symbol) -> Symbol:
 # Whether the symbol is of the type Dictionary, or is set to what a function returns that is declared
 # to return one. That function is looked for from where the symbol is used, or among the static
 # functions of the class or the autoload it is called on
-func _is_dictionary(symbol : Symbol, symbol_path : SymbolPath) -> bool:
+func _is_dictionary(symbol : _Symbol, symbol_path : _SymbolPath) -> bool:
 	var type : String = symbol.type
 	var of_value : bool = type.begins_with(VALUE_OF)
 	if type.begins_with(RETURNED_BY) or of_value:
 		var name : String = type.trim_prefix(VALUE_OF if of_value else RETURNED_BY)
-		var source : Symbol = null
+		var source : _Symbol = null
 		if name.contains("."):
 			# A static member of a named class, or a member of an autoload, which it has among its children
-			var owner : Symbol = find_global_symbol(name.get_slice(".", 0))
+			var owner : _Symbol = find_global_symbol(name.get_slice(".", 0))
 			source = owner.children.get(name.get_slice(".", 1)) if owner else null
 		elif symbol_path.get_ast():
 			source = _search_symbol(symbol_path.get_ast(), name, !of_value)
@@ -241,39 +241,39 @@ func obfuscate_string_global(str : String) -> String:
 	return _generate_symbol_name(str) if settings.obfuscation_enabled and !_locked_symbols.has(str) and !is_custom_lock_settings(str) else str
 
 
-func _search_symbol(ast_node : AST.ASTNode, name : String, is_func : bool) -> Symbol:
-	var from : AST.ASTNode = ast_node # Where the search came from, at first the place of use
+func _search_symbol(ast_node : _AST._ASTNode, name : String, is_func : bool) -> _Symbol:
+	var from : _AST._ASTNode = ast_node # Where the search came from, at first the place of use
 	
 	ast_node = ast_node.get_parent()
 	while ast_node:
 		var children : Array = ast_node.get_children()
-		if from is AST.Sequence and not ast_node is AST.Sequence:
+		if from is _AST._Sequence and not ast_node is _AST._Sequence:
 			# The statements of its block have been searched, which leaves what the node itself declares
-			if ast_node is AST.Func:
+			if ast_node is _AST._Func:
 				children = ast_node.params
-			elif ast_node is AST.For:
+			elif ast_node is _AST._For:
 				children = [ast_node.iterator]
 			else:
 				children = []
 		
 		# Members of a class can be used ahead of their declaration, unlike anything else
-		var any_order : bool = ast_node is AST.Sequence and ast_node.get_parent() is AST.Class
+		var any_order : bool = ast_node is _AST._Sequence and ast_node.get_parent() is _AST._Class
 		
 		# The last declaration ahead of the place of use counts, as the branches
 		# of a match may each bind the same name
-		var found : Symbol = null
+		var found : _Symbol = null
 		for child in children:
 			if child == from:
 				if any_order:
 					continue
 				break
-			elif child is AST.SymbolDeclaration and child.symbol and child.symbol.get_name() == name and (child is AST.Func == is_func):
+			elif child is _AST._SymbolDeclaration and child.symbol and child.symbol.get_name() == name and (child is _AST._Func == is_func):
 				found = child.symbol
 				if any_order:
 					break
 		if found:
 			return found
-		if ast_node is AST.Class:
+		if ast_node is _AST._Class:
 			found = _search_inherited(ast_node, name, is_func)
 			if found:
 				return found
@@ -285,38 +285,38 @@ func _search_symbol(ast_node : AST.ASTNode, name : String, is_func : bool) -> Sy
 
 
 # A member of the class the node is in, or of one it extends in the same script, as in self.name
-func _search_member(ast_node : AST.ASTNode, name : String, is_func : bool) -> Symbol:
-	while ast_node and not ast_node is AST.Class:
+func _search_member(ast_node : _AST._ASTNode, name : String, is_func : bool) -> _Symbol:
+	while ast_node and not ast_node is _AST._Class:
 		ast_node = ast_node.get_parent()
 	if !ast_node:
 		return null
 	for child in ast_node.body.statements:
-		if child is AST.SymbolDeclaration and child.symbol and child.symbol.get_name() == name and (child is AST.Func == is_func):
+		if child is _AST._SymbolDeclaration and child.symbol and child.symbol.get_name() == name and (child is _AST._Func == is_func):
 			return child.symbol
 	return _search_inherited(ast_node, name, is_func)
 
 
 # A member that a class has from the inner classes of the script it extends, one after the other
-func _search_inherited(cls : AST.Class, name : String, is_func : bool) -> Symbol:
-	var seen : Array[AST.Class] = [cls]
+func _search_inherited(cls : _AST._Class, name : String, is_func : bool) -> _Symbol:
+	var seen : Array[_AST._Class] = [cls]
 	while cls.ext and cls.ext.symbols.size() == 1:
 		cls = _find_inner_class(cls, cls.ext.symbols[0].get_name())
 		if !cls or seen.has(cls):
 			return null
 		seen.append(cls)
 		for child in cls.body.statements:
-			if child is AST.SymbolDeclaration and child.symbol and child.symbol.get_name() == name and (child is AST.Func == is_func):
+			if child is _AST._SymbolDeclaration and child.symbol and child.symbol.get_name() == name and (child is _AST._Func == is_func):
 				return child.symbol
 	return null
 
 
 # The inner class of the given name that is seen from the given node
-func _find_inner_class(from : AST.ASTNode, name : String) -> AST.Class:
-	var node : AST.ASTNode = from.get_parent()
+func _find_inner_class(from : _AST._ASTNode, name : String) -> _AST._Class:
+	var node : _AST._ASTNode = from.get_parent()
 	while node:
-		if node is AST.Sequence:
+		if node is _AST._Sequence:
 			for child in node.statements:
-				if child is AST.Class and child.symbol and child.symbol.get_name() == name:
+				if child is _AST._Class and child.symbol and child.symbol.get_name() == name:
 					return child
 		node = node.get_parent()
 	return null
@@ -372,21 +372,21 @@ func _to_identifier(id : String) -> String:
 	return "_" + id if id.is_empty() or (id[0] >= "0" and id[0] <= "9") else id
 
 
-class Symbol extends RefCounted:
-	var name : StringRef
+class _Symbol extends RefCounted:
+	var name : _StringRef
 	var source_name : String
 	var type : String
 	var children : Dictionary
 	var string_params : Array
-	var parent : Symbol
+	var parent : _Symbol
 	
-	static func new_linked(type : String, ref : Symbol) -> Symbol:
-		var symbol := Symbol.new(ref.source_name, type)
+	static func new_linked(type : String, ref : _Symbol) -> _Symbol:
+		var symbol := _Symbol.new(ref.source_name, type)
 		symbol.link(ref)
 		return symbol
 	
 	func _init(name : String, type : String = "") -> void:
-		self.name = StringRef.new(name)
+		self.name = _StringRef.new(name)
 		self.source_name = name
 		self.type = type
 	
@@ -399,7 +399,7 @@ class Symbol extends RefCounted:
 	func get_source_name() -> String:
 		return source_name
 	
-	func add_child(other : Symbol) -> void:
+	func add_child(other : _Symbol) -> void:
 		children[other.name.get_value()] = other
 	
 	func add_string_param(idx : int) -> void:
@@ -412,7 +412,7 @@ class Symbol extends RefCounted:
 	func is_string_param(idx : int) -> bool:
 		return string_params.has(idx)
 	
-	func link(other : Symbol) -> void:
+	func link(other : _Symbol) -> void:
 		name.link(other.name)
 		parent = other
 		children.merge(other.children)
@@ -420,13 +420,13 @@ class Symbol extends RefCounted:
 		string_params = string_params + other.string_params
 		other.string_params = string_params
 	
-	func get_root() -> Symbol:
+	func get_root() -> _Symbol:
 		return parent.get_root() if parent else self
 
 
-class SymbolPath:
+class _SymbolPath:
 	var ast : WeakRef
-	var symbols : Array[Symbol]
+	var symbols : Array[_Symbol]
 	var is_call : bool = false
 	var maybe_local : bool = true
 	var of_self : bool = false # Whether it comes after "self.", which makes it a member of the class
@@ -439,16 +439,16 @@ class SymbolPath:
 			str += str(symbol) + "."
 		return str.trim_suffix(".")
 	
-	func add(name : String) -> Symbol:
-		var symbol := Symbol.new(name)
+	func add(name : String) -> _Symbol:
+		var symbol := _Symbol.new(name)
 		symbols.append(symbol)
 		return symbol
 	
-	func set_ast(ast : AST.ASTNode) -> void:
+	func set_ast(ast : _AST._ASTNode) -> void:
 		self.ast = weakref(ast)
 	
-	func get_ast() -> AST.ASTNode:
-		return ast.get_ref() as AST.ASTNode if ast else null
+	func get_ast() -> _AST._ASTNode:
+		return ast.get_ref() as _AST._ASTNode if ast else null
 	
 	func set_log(log : Variant) -> void:
 		self.log = weakref(log)

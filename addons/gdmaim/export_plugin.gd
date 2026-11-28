@@ -3,15 +3,15 @@ extends EditorExportPlugin
 
 const _Settings := preload("settings.gd")
 const _Logger := preload("logger.gd")
-const GodotFiles := preload("godot_files.gd")
-const ScriptObfuscator := preload("obfuscator/script/script_obfuscator.gd")
-const Inliner := preload("obfuscator/script/inliner.gd")
-const PreprocessorHints := preload("obfuscator/script/preprocessor_hints.gd")
-const ResourceObfuscator := preload("obfuscator/resource/resource_obfuscator.gd")
-const SymbolTable := preload("obfuscator/symbol_table.gd")
-const Tokenizer := preload("obfuscator/script/tokenizer/tokenizer.gd")
-const Token := preload("obfuscator/script/tokenizer/token.gd")
-const Binash = preload("util/binash.gd")
+const _GodotFiles := preload("godot_files.gd")
+const _ScriptObfuscator := preload("obfuscator/script/script_obfuscator.gd")
+const _Inliner := preload("obfuscator/script/inliner.gd")
+const _PreprocessorHints := preload("obfuscator/script/preprocessor_hints.gd")
+const _ResourceObfuscator := preload("obfuscator/resource/resource_obfuscator.gd")
+const _SymbolTable := preload("obfuscator/symbol_table.gd")
+const _Tokenizer := preload("obfuscator/script/tokenizer/tokenizer.gd")
+const _Token := preload("obfuscator/script/tokenizer/token.gd")
+const _Binash = preload("util/binash.gd")
 
 const SOURCE_MAP_EXT : String = ".gd.map"
 const GODOT_CLASS_CACHE_FILE : String = "global_script_class_cache.cfg"
@@ -27,16 +27,16 @@ var _source_map_filename : String
 var _scripts_last_modification : Dictionary
 var _autoloads : Dictionary
 var _class_symbols : Dictionary
-var _symbols : SymbolTable
+var _symbols : _SymbolTable
 var _src_obfuscators : Dictionary
 var _res_obfuscators : Dictionary
 var _inject_autoload : String
 var _exported_script_count : int
 var _rgx : RegEx
-var _godot_files : GodotFiles
+var _godot_files : _GodotFiles
 var _compiler
 var _compress_mode : int
-var _binash : Binash
+var _binash : _Binash
 
 #region addon_path
 static var _addon_path : String = "res://addons/gdmaim/"
@@ -86,7 +86,7 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	
 	# The addon is not part of the game however it gets exported, so the extension it brings
 	# along must not be in the list of extensions the game loads when it starts
-	_godot_files = GodotFiles.new()
+	_godot_files = _GodotFiles.new()
 	var extension_list_path : String = _godot_data_path(GODOT_EXTENSION_LIST_FILE)
 	var extension_list_src := FileAccess.get_file_as_string(extension_list_path)
 	var extension_list : String
@@ -122,9 +122,9 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 	_src_obfuscators.clear()
 	_res_obfuscators.clear()
 	
-	_symbols = SymbolTable.new(settings)
+	_symbols = _SymbolTable.new(settings)
 
-	_binash = Binash.new(path)
+	_binash = _Binash.new(path)
 	
 	# Gather autoloads, which the obfuscator needs to know regardless of any setting
 	_inject_autoload = ""
@@ -213,7 +213,7 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 				_symbols.lock_symbol_name(smb)
 				
 			for k : StringName in data.keys():
-				var symb : SymbolTable.Symbol = _symbols.create_global_symbol(k)
+				var symb : _SymbolTable._Symbol = _symbols.create_global_symbol(k)
 				var key : StringName = data[k]
 				_symbols.lock_symbol_name(key)
 				
@@ -233,20 +233,20 @@ func _export_begin(features : PackedStringArray, is_debug : bool, path : String,
 		named_enums = false
 		push_warning("GDMaim - Inline Enums leaves the keys of enums with a name as they are, as the warning 'Int As Enum Without Cast' is set to Error in the project settings.")
 	if settings.obfuscation_enabled and (settings.inline_constants or settings.inline_enums):
-		Inliner.new().run(_src_obfuscators.values(), _symbols, settings.inline_constants, settings.inline_enums, named_enums)
+		_Inliner.new().run(_src_obfuscators.values(), _symbols, settings.inline_constants, settings.inline_enums, named_enums)
 	
 	# Initialize gdbc if necessary
 	_compiler = null
-	if settings.export_mode != settings.ExportMode.TEXT and ClassDB.class_exists("BytecodeCompiler"):
+	if settings.export_mode != settings._ExportMode.TEXT and ClassDB.class_exists("BytecodeCompiler"):
 		_compiler = ClassDB.instantiate("BytecodeCompiler")
-		if settings.export_mode == settings.ExportMode.BINARY:
+		if settings.export_mode == settings._ExportMode.BINARY:
 			print("GDMaim - Exporting scripts as binary tokens.")
 			_compress_mode = _compiler.UNCOMPRESSED
 		else:
 			print("GDMaim - Exporting scripts as compressed binary tokens.")
 			_compress_mode = _compiler.COMPRESSED
 	else:
-		if settings.export_mode != settings.ExportMode.TEXT and !ClassDB.class_exists("BytecodeCompiler"):
+		if settings.export_mode != settings._ExportMode.TEXT and !ClassDB.class_exists("BytecodeCompiler"):
 			printerr("GDMaim - Failed to locate GDBC! Cannot compile scripts to bytecode!")
 		print("GDMaim - Exporting scripts as plain text.")
 	
@@ -323,11 +323,11 @@ func _save_source_map() -> void:
 		"scripts": {},
 		"resources": {},
 	}
-	for symbol : SymbolTable.Symbol in _symbols._global_symbols.values() + _symbols._local_symbols:
+	for symbol : _SymbolTable._Symbol in _symbols._global_symbols.values() + _symbols._local_symbols:
 		source_map["symbols"]["source"][symbol.get_source_name()] = symbol.get_name()
 		source_map["symbols"]["export"][symbol.get_name()] = symbol.get_source_name()
 	for path in _src_obfuscators:
-		var obfuscator : ScriptObfuscator = _src_obfuscators[path]
+		var obfuscator : _ScriptObfuscator = _src_obfuscators[path]
 		var mappings : Array[Dictionary] = obfuscator.generate_line_mappings()
 		var data : Dictionary = {
 			"source_code": obfuscator.source_code,
@@ -338,7 +338,7 @@ func _save_source_map() -> void:
 		}
 		source_map["scripts"][obfuscator.path] = data
 	for path in _res_obfuscators:
-		var obfuscator : ResourceObfuscator = _res_obfuscators[path]
+		var obfuscator : _ResourceObfuscator = _res_obfuscators[path]
 		var data : Dictionary = {
 			"source_code": obfuscator.get_source_data(),
 			"export_code": obfuscator.get_data(),
@@ -377,7 +377,7 @@ func _verify_scripts() -> void:
 	var lines : PackedStringArray = "\n".join(output).replace("\r", "").split("\n")
 	
 	var source_names : Dictionary
-	for symbol : SymbolTable.Symbol in _symbols._global_symbols.values() + _symbols._local_symbols:
+	for symbol : _SymbolTable._Symbol in _symbols._global_symbols.values() + _symbols._local_symbols:
 		source_names[symbol.get_name()] = symbol.get_source_name()
 	
 	const CHECKED : String = "GDMaim - Scripts checked: "
@@ -518,8 +518,8 @@ func _export_file(path : String, type : String, features : PackedStringArray) ->
 
 		skip()
 
-		if settings.export_mode != settings.ExportMode.TEXT:
-			var bytes : PackedByteArray = _binash.get_bytes_from_text(data, ext, settings.export_mode == settings.ExportMode.COMPRESSED, path)
+		if settings.export_mode != settings._ExportMode.TEXT:
+			var bytes : PackedByteArray = _binash.get_bytes_from_text(data, ext, settings.export_mode == settings._ExportMode.COMPRESSED, path)
 
 			if bytes.size() > 0:
 				add_file(path.trim_suffix(ext) + ext.trim_prefix("t"), bytes, true)
@@ -542,9 +542,9 @@ func _export_file(path : String, type : String, features : PackedStringArray) ->
 					return
 				skip()
 				
-				if settings.export_mode != settings.ExportMode.TEXT:
+				if settings.export_mode != settings._ExportMode.TEXT:
 					
-					var bytes : PackedByteArray = _binash.get_bytes_from_text(data, "t" + ext, settings.export_mode == settings.ExportMode.COMPRESSED, path)
+					var bytes : PackedByteArray = _binash.get_bytes_from_text(data, "t" + ext, settings.export_mode == settings._ExportMode.COMPRESSED, path)
 					
 					if bytes.size() > 0:
 						add_file(path, bytes, false)
@@ -648,7 +648,7 @@ func _parse_script(path : String) -> void:
 		for x : int in range(source_codes.size()):
 			var _source_code : String = source_codes[x]
 			var embedded_path : String = str(path,":",x)
-			var obfuscator := ScriptObfuscator.new(embedded_path)
+			var obfuscator := _ScriptObfuscator.new(embedded_path)
 			_src_obfuscators[embedded_path] = obfuscator
 			_source_code = str(_source_code.strip_edges(), "\n")
 
@@ -668,7 +668,7 @@ func _parse_script(path : String) -> void:
 		return
 			
 	if source_code.is_empty():return
-	var obfuscator := ScriptObfuscator.new(path)
+	var obfuscator := _ScriptObfuscator.new(path)
 	_src_obfuscators[path] = obfuscator
 	
 	_Logger.swap(obfuscator)
@@ -688,17 +688,17 @@ func _parse_script(path : String) -> void:
 
 
 func _obfuscate_script(path : String) -> String:
-	var obfuscator : ScriptObfuscator = _src_obfuscators[path]
+	var obfuscator : _ScriptObfuscator = _src_obfuscators[path]
 	
 	_Logger.swap(obfuscator)
 	_Logger.write("\n---------- " + " Obfuscating script " + path + " ----------")
 	
 	obfuscator.run(_features)
 	if _Settings.current.obfuscation_enabled:
-		var hint : String = _Settings.current.preprocessor_prefix + PreprocessorHints.OBFUSCATE_STRINGS
+		var hint : String = _Settings.current.preprocessor_prefix + _PreprocessorHints.OBFUSCATE_STRINGS
 		for found in obfuscator.find_unrenamed_names():
 			push_warning("GDMaim - %s:%d: \"%s\" is a name that gets renamed, but not in this string. Add %s to the line to have the string renamed as well." % [path, found[0] + 1, found[1], hint])
-		var lock : String = _Settings.current.preprocessor_prefix + PreprocessorHints.LOCK_SYMBOLS
+		var lock : String = _Settings.current.preprocessor_prefix + _PreprocessorHints.LOCK_SYMBOLS
 		for found in obfuscator.find_names_lost_by_pattern():
 			var names : PackedStringArray = found[4]
 			var more : String = " and %d more" % (names.size() - 1) if names.size() > 1 else ""
@@ -712,9 +712,9 @@ func _obfuscate_script(path : String) -> String:
 
 
 # Makes the script print the name of the source map as soon as it enters the tree
-func _inject_source_map_name(obfuscator : ScriptObfuscator) -> void:
+func _inject_source_map_name(obfuscator : _ScriptObfuscator) -> void:
 	var injection_code : String = 'print("GDMaim - Source map \'' + _source_map_filename + '\'\\n");'
-	var lines : Array[Tokenizer.Line] = obfuscator.tokenizer.get_output_lines()
+	var lines : Array[_Tokenizer._Line] = obfuscator.tokenizer.get_output_lines()
 
 	for l in lines.size():
 		if lines[l].get_indentation() != 0:
@@ -739,7 +739,7 @@ func _inject_source_map_name(obfuscator : ScriptObfuscator) -> void:
 		var colon_at : int = name_at + 1
 		var found : bool = false
 		while colon_line < lines.size():
-			var tokens : Array[Token] = lines[colon_line].tokens
+			var tokens : Array[_Token] = lines[colon_line].tokens
 			while colon_at < tokens.size():
 				if tokens[colon_at].is_punctuator("("):
 					depth += 1
@@ -758,13 +758,13 @@ func _inject_source_map_name(obfuscator : ScriptObfuscator) -> void:
 
 		# A body on the same line goes on behind the injected code, one below is put behind its indentation
 		for i in range(colon_at + 1, lines[colon_line].tokens.size()):
-			var token : Token = lines[colon_line].tokens[i]
+			var token : _Token = lines[colon_line].tokens[i]
 			if !token.is_whitespace() and !token.is_comment() and !token.is_line_break():
-				lines[colon_line].insert_token(colon_at + 1, Token.new(Token.Type.LITERAL, injection_code, -1, -1))
+				lines[colon_line].insert_token(colon_at + 1, _Token.new(_Token._Type.LITERAL, injection_code, -1, -1))
 				return
 		for body_line in range(colon_line + 1, lines.size()):
 			if lines[body_line].has_statement():
-				lines[body_line].insert_token(1 if lines[body_line].get_indentation() > 0 else 0, Token.new(Token.Type.LITERAL, injection_code, -1, -1))
+				lines[body_line].insert_token(1 if lines[body_line].get_indentation() > 0 else 0, _Token.new(_Token._Type.LITERAL, injection_code, -1, -1))
 				return
 		break
 
@@ -777,7 +777,7 @@ func _inject_source_map_name(obfuscator : ScriptObfuscator) -> void:
 			if method.name == "_enter_tree":
 				code += "super()"
 				break
-	obfuscator.tokenizer.insert_output_line(lines.size(), Tokenizer.Line.new([Token.new(Token.Type.LITERAL, code, -1, -1)]))
+	obfuscator.tokenizer.insert_output_line(lines.size(), _Tokenizer._Line.new([_Token.new(_Token._Type.LITERAL, code, -1, -1)]))
 
 
 # Undoes the escaping of a string in a text resource
@@ -787,7 +787,7 @@ static func _unescape(text : String) -> String:
 
 
 func _obfuscate_resource(path : String, source_data : String) -> String:
-	var obfuscator := ResourceObfuscator.new(path)
+	var obfuscator := _ResourceObfuscator.new(path)
 	_res_obfuscators[path] = obfuscator
 	
 	var codes : Array[String] = []
@@ -891,7 +891,7 @@ static func _build_data_path(path : String) -> void:
 func strip(path : String) -> String:
 	var out : String = ""
 	
-	var resources : PackedStringArray = ResourceObfuscator.Resources
+	var resources : PackedStringArray = _ResourceObfuscator.Resources
 	if FileAccess.file_exists(path) and path.get_extension().begins_with(resources[resources.size() - 1]):
 		if Engine.has_singleton(&"GDShedor"):
 			for _settings in Engine.get_main_loop().get_nodes_in_group(&"GDShedor"):
@@ -915,7 +915,7 @@ func strip(path : String) -> String:
 		elif _Settings.current.strip_comments:
 			var data : String = FileAccess.get_file_as_string(path)
 			var idx : int = 0
-			for x : RegExMatch in ResourceObfuscator.c_strip.search_all(data):
+			for x : RegExMatch in _ResourceObfuscator.c_strip.search_all(data):
 				out += data.substr(idx, x.get_start() - idx)
 
 				if not x.get_string(1).is_empty():

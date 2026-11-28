@@ -13,18 +13,18 @@ extends RefCounted
 ## Constants and enums stay declared, for anything that is not replaced: a use this cannot be
 ## sure of, a string that names one, a scene, a script in another language, an enum used as a type.
 
-const SymbolTable := preload("../symbol_table.gd")
-const Token := preload("tokenizer/token.gd")
-const Tokenizer := preload("tokenizer/tokenizer.gd")
-const AST := preload("parser/ast.gd")
-const PreprocessorHints := preload("preprocessor_hints.gd")
+const _SymbolTable := preload("../symbol_table.gd")
+const _Token := preload("tokenizer/token.gd")
+const _Tokenizer := preload("tokenizer/tokenizer.gd")
+const _AST := preload("parser/ast.gd")
+const _PreprocessorHints := preload("preprocessor_hints.gd")
 const _Settings := preload("../../settings.gd")
 
 # The types a value is written with, as with Vector2(1, 2)
 const CONSTRUCTED : PackedStringArray = ["Vector2", "Vector2i", "Vector3", "Vector3i", "Vector4", "Vector4i", "Color"]
-const NO_CODE : int = Token.Type.INDENTATION | Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.LINE_BREAK
+const NO_CODE : int = _Token._Type.INDENTATION | _Token._Type.WHITESPACE | _Token._Type.COMMENT | _Token._Type.LINE_BREAK
 
-var _symbols : SymbolTable
+var _symbols : _SymbolTable
 var _unlocked_locals : Dictionary
 var _declarations : Dictionary # How many members of classes there are of a name, by the symbol they share
 var _values : Dictionary # What takes the place of a name, by its symbol: a Value
@@ -34,7 +34,7 @@ var _declared_at : Dictionary # The tokens which name something where it is decl
 
 ## A list of ScriptObfuscators, whose symbols have been resolved. Without named_enums, only the keys
 ## of enums without a name are replaced, which are whole numbers and no enum
-func run(obfuscators : Array, symbols : SymbolTable, constants : bool, enums : bool, named_enums : bool = true) -> void:
+func run(obfuscators : Array, symbols : _SymbolTable, constants : bool, enums : bool, named_enums : bool = true) -> void:
 	_symbols = symbols
 	for symbol in symbols._local_symbols:
 		_unlocked_locals[symbol] = true
@@ -42,24 +42,24 @@ func run(obfuscators : Array, symbols : SymbolTable, constants : bool, enums : b
 	for obfuscator in obfuscators:
 		_count_declarations(obfuscator._ast)
 	for obfuscator in obfuscators:
-		var class_symbol : SymbolTable.Symbol = obfuscator.get_class_symbol()
-		var class_root : SymbolTable.Symbol = class_symbol.get_root() if class_symbol else null
-		var lines : Array[Tokenizer.Line] = obfuscator.tokenizer.get_output_lines()
+		var class_symbol : _SymbolTable._Symbol = obfuscator.get_class_symbol()
+		var class_root : _SymbolTable._Symbol = class_symbol.get_root() if class_symbol else null
+		var lines : Array[_Tokenizer._Line] = obfuscator.tokenizer.get_output_lines()
 		var obfuscates_strings : bool = false
 		for l in lines.size():
 			for token in lines[l].tokens:
 				if token.is_comment():
 					match token.get_value().strip_edges().trim_prefix(_Settings.current.preprocessor_prefix).get_slice(" ", 0):
-						PreprocessorHints.START_OBFUSCATE_STRINGS:
+						_PreprocessorHints.START_OBFUSCATE_STRINGS:
 							obfuscates_strings = true
-						PreprocessorHints.END_OBFUSCATE_STRINGS:
+						_PreprocessorHints.END_OBFUSCATE_STRINGS:
 							obfuscates_strings = false
 			var first : int = _next(lines[l].tokens, -1)
 			if first == -1:
 				continue
 			if constants and lines[l].tokens[first].is_keyword("const"):
 				# A string that gets obfuscated here is not what the constant will stand for
-				var keeps_string : bool = !obfuscates_strings and !obfuscator.tokenizer.has_source_hint(lines[l].tokens[first].source_line, PreprocessorHints.OBFUSCATE_STRINGS)
+				var keeps_string : bool = !obfuscates_strings and !obfuscator.tokenizer.has_source_hint(lines[l].tokens[first].source_line, _PreprocessorHints.OBFUSCATE_STRINGS)
 				_read_constant(lines[l].tokens, first, class_root, keeps_string)
 			elif enums and lines[l].tokens[first].is_keyword("enum"):
 				_read_enum(lines, l, class_root, named_enums)
@@ -70,9 +70,9 @@ func run(obfuscators : Array, symbols : SymbolTable, constants : bool, enums : b
 			_replace_names(line.tokens)
 
 
-func _count_declarations(node : AST.ASTNode) -> void:
-	if node is AST.SymbolDeclaration and node.symbol and node.symbol.parent:
-		var root : SymbolTable.Symbol = node.symbol.get_root()
+func _count_declarations(node : _AST._ASTNode) -> void:
+	if node is _AST._SymbolDeclaration and node.symbol and node.symbol.parent:
+		var root : _SymbolTable._Symbol = node.symbol.get_root()
 		_declarations[root] = _declarations.get(root, 0) + 1
 	for child in node.get_children():
 		if child:
@@ -81,7 +81,7 @@ func _count_declarations(node : AST.ASTNode) -> void:
 
 # Whether the symbol is the one of a member of a class which is the only member of its name,
 # and which nothing but the scripts of the project know by that name
-func _is_only_member(symbol : SymbolTable.Symbol) -> bool:
+func _is_only_member(symbol : _SymbolTable._Symbol) -> bool:
 	if !symbol or !symbol.parent:
 		return false
 	var name : String = symbol.get_source_name()
@@ -89,7 +89,7 @@ func _is_only_member(symbol : SymbolTable.Symbol) -> bool:
 
 
 # Takes down the constant a line declares, if it is one with a value that can be written anywhere
-func _read_constant(tokens : Array[Token], at : int, class_root : SymbolTable.Symbol, keeps_string : bool) -> void:
+func _read_constant(tokens : Array[_Token], at : int, class_root : _SymbolTable._Symbol, keeps_string : bool) -> void:
 	var name_at : int = _next(tokens, at)
 	if name_at == -1 or !tokens[name_at].is_symbol() or !tokens[name_at].symbol:
 		return
@@ -104,11 +104,11 @@ func _read_constant(tokens : Array[Token], at : int, class_root : SymbolTable.Sy
 			at = _next(tokens, at)
 	if at == -1 or !tokens[at].is_operator("="):
 		return
-	var value : Value = _read_value(tokens, _next(tokens, at), type)
+	var value : _Value = _read_value(tokens, _next(tokens, at), type)
 	if !value or (value.string and !keeps_string):
 		return
 
-	var symbol : SymbolTable.Symbol = tokens[name_at].symbol
+	var symbol : _SymbolTable._Symbol = tokens[name_at].symbol
 	if _is_only_member(symbol):
 		value.class_root = class_root
 		_values[symbol.get_root()] = value
@@ -121,23 +121,23 @@ func _read_constant(tokens : Array[Token], at : int, class_root : SymbolTable.Sy
 
 # The value that begins at the given token and goes on to the end of the line, if it is one number,
 # bool or string, or a vector or a color made of numbers, and of the type the constant is declared with
-func _read_value(tokens : Array[Token], from : int, type : String) -> Value:
+func _read_value(tokens : Array[_Token], from : int, type : String) -> _Value:
 	if from == -1:
 		return null
-	var parts : Array[Token] = []
+	var parts : Array[_Token] = []
 	for i in range(from, tokens.size()):
 		if !tokens[i].is_of_type(NO_CODE):
 			parts.append(tokens[i])
 	if parts.is_empty():
 		return null
 
-	var value := Value.new()
-	var first : Token = parts[0]
+	var value := _Value.new()
+	var first : _Token = parts[0]
 	if parts.size() == 1 and first.is_literal() and first.get_value() in ["true", "false"]:
 		value.text = first.get_value()
 		return value if type in ["", "bool"] else null
 
-	if parts.size() == 1 and first.type == Token.Type.STRING_LITERAL and first.decorator in ["\"", "'"] and !first.get_value().contains("\n"):
+	if parts.size() == 1 and first.type == _Token._Type.STRING_LITERAL and first.decorator in ["\"", "'"] and !first.get_value().contains("\n"):
 		# &"StringName", ^"NodePath" and r"raw string" have something ahead of the string, and are no string alone
 		value.string = first
 		return value if type in ["", "String"] else null
@@ -168,7 +168,7 @@ func _read_value(tokens : Array[Token], from : int, type : String) -> Value:
 	return null
 
 
-func _is_number(parts : Array[Token]) -> bool:
+func _is_number(parts : Array[_Token]) -> bool:
 	if parts.size() == 1:
 		return parts[0].is_number_literal()
 	return parts.size() == 2 and parts[0].is_operator("-") and parts[1].is_number_literal()
@@ -176,9 +176,9 @@ func _is_number(parts : Array[Token]) -> bool:
 
 # Takes down the keys of the enum that begins on the given line, with the values they stand for.
 # A key whose value is worked out is left out, and so are the ones counted on from it
-func _read_enum(lines : Array[Tokenizer.Line], l : int, class_root : SymbolTable.Symbol, named : bool) -> void:
+func _read_enum(lines : Array[_Tokenizer._Line], l : int, class_root : _SymbolTable._Symbol, named : bool) -> void:
 	# The enum may go on over several lines
-	var parts : Array[Token] = []
+	var parts : Array[_Token] = []
 	var closed : bool = false
 	for i in range(l, lines.size()):
 		for token in lines[i].tokens:
@@ -193,7 +193,7 @@ func _read_enum(lines : Array[Tokenizer.Line], l : int, class_root : SymbolTable
 	if !closed or parts.size() < 3:
 		return
 
-	var name : Token = parts[1] if parts[1].is_symbol() else null
+	var name : _Token = parts[1] if parts[1].is_symbol() else null
 	var at : int = 2 if name else 1
 	if !parts[at].is_punctuator("{"):
 		return
@@ -203,12 +203,12 @@ func _read_enum(lines : Array[Tokenizer.Line], l : int, class_root : SymbolTable
 	var number : int = 0
 	var known : bool = true
 	while at < parts.size() and !parts[at].is_punctuator("}"):
-		var key : Token = parts[at]
+		var key : _Token = parts[at]
 		if !key.is_symbol() or !key.symbol:
 			return
 		at += 1
 		if parts[at].is_operator("="):
-			var written : Array[Token] = []
+			var written : Array[_Token] = []
 			var depth : int = 0
 			at += 1
 			while at < parts.size() and (depth > 0 or (!parts[at].is_punctuator(",") and !parts[at].is_punctuator("}"))):
@@ -253,24 +253,24 @@ func _read_enum(lines : Array[Tokenizer.Line], l : int, class_root : SymbolTable
 				_declared_at[key] = true
 
 
-func _get_number_value(number : int, class_root : SymbolTable.Symbol) -> Value:
-	var value := Value.new()
+func _get_number_value(number : int, class_root : _SymbolTable._Symbol) -> _Value:
+	var value := _Value.new()
 	value.text = str(number) if number >= 0 else "(" + str(number) + ")"
 	value.class_root = class_root
 	return value
 
 
-func _replace_names(tokens : Array[Token]) -> void:
+func _replace_names(tokens : Array[_Token]) -> void:
 	var i : int = 0
 	while i < tokens.size():
-		var token : Token = tokens[i]
+		var token : _Token = tokens[i]
 		i += 1
 		if !token.is_symbol() or !token.symbol or _declared_at.has(token):
 			continue
 		var from : int = i - 1
 		var to : int = i - 1
-		var root : SymbolTable.Symbol = token.symbol.get_root()
-		var value : Value = _values.get(root)
+		var root : _SymbolTable._Symbol = token.symbol.get_root()
+		var value : _Value = _values.get(root)
 		if !value and _enums.has(root):
 			# The key that follows the name of an enum
 			var dot : int = _next(tokens, to)
@@ -300,11 +300,11 @@ func _replace_names(tokens : Array[Token]) -> void:
 				continue
 			from = owner
 
-		var replacement : Token
+		var replacement : _Token
 		if value.string:
-			replacement = Token.new(Token.Type.STRING_LITERAL, value.string.get_value(false), token.idx, token.line, value.string.decorator)
+			replacement = _Token.new(_Token._Type.STRING_LITERAL, value.string.get_value(false), token.idx, token.line, value.string.decorator)
 		else:
-			replacement = Token.new(Token.Type.LITERAL, value.text, token.idx, token.line)
+			replacement = _Token.new(_Token._Type.LITERAL, value.text, token.idx, token.line)
 		replacement.source_line = token.source_line
 		for j in to - from:
 			tokens.remove_at(from)
@@ -313,7 +313,7 @@ func _replace_names(tokens : Array[Token]) -> void:
 
 
 # The token after the given one that is neither whitespace nor a comment, -1 if the line ends first
-func _next(tokens : Array[Token], i : int) -> int:
+func _next(tokens : Array[_Token], i : int) -> int:
 	for j in range(i + 1, tokens.size()):
 		if tokens[j].is_line_break():
 			return -1
@@ -322,14 +322,14 @@ func _next(tokens : Array[Token], i : int) -> int:
 	return -1
 
 
-func _previous(tokens : Array[Token], i : int) -> int:
+func _previous(tokens : Array[_Token], i : int) -> int:
 	for j in range(i - 1, -1, -1):
 		if !tokens[j].is_of_type(NO_CODE):
 			return j
 	return -1
 
 
-class Value:
+class _Value:
 	var text : String # As it is written, for anything but a string
-	var string : Token # The string, as the constant has it
-	var class_root : SymbolTable.Symbol # The class a member of a class is declared in, if that class has a name
+	var string : _Token # The string, as the constant has it
+	var class_root : _SymbolTable._Symbol # The class a member of a class is declared in, if that class has a name

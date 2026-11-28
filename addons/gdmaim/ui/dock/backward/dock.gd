@@ -36,9 +36,9 @@ func _ready() -> void:
 					label.tooltip_text = entry.visible_name + "\n" + entry.tooltip
 				$ScrollContainer/VBoxContainer.add_child(label)
 			
-			if entry.custom_type != entry.CustomType.NONE:
+			if entry.custom_type != entry._CustomType.NONE:
 				match entry.custom_type:
-					entry.CustomType.OPTIONS:
+					entry._CustomType.OPTIONS:
 						var options : OptionButton = preload("../dock_options.tscn").instantiate()
 						options.settings_var = entry.var_name
 						options.disabled = entry.disabled
@@ -47,7 +47,7 @@ func _ready() -> void:
 						options.item_selected.connect(_on_options_button_item_selected)
 						label.add_child(options)
 						register_setting(options)
-					entry.CustomType.MULTI_FILE_PATH:
+					entry._CustomType.MULTI_FILE_PATH:
 						var options : Control = preload("../dock_multi_filepath.tscn").instantiate()
 						options.settings_var = entry.var_name
 						label.add_child(options)

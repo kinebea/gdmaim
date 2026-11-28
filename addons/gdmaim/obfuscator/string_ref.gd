@@ -1,7 +1,7 @@
 extends RefCounted
 
 
-const StringRef := preload("string_ref.gd")
+const _StringRef := preload("string_ref.gd")
 
 var _value : String
 var _root : WeakRef
@@ -23,5 +23,5 @@ func get_value() -> String:
 	return str(self)
 
 
-func link(other : StringRef) -> void:
+func link(other : _StringRef) -> void:
 	_root = weakref(other)

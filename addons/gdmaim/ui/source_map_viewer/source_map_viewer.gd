@@ -2,9 +2,9 @@
 extends Window
 
 
-const ExportPlugin := preload("../../export_plugin.gd")
+const _ExportPlugin := preload("../../export_plugin.gd")
 const _Settings := preload("../../settings.gd")
-const LogTranslator := preload("../../util/log_translator.gd")
+const _LogTranslator := preload("../../util/log_translator.gd")
 
 var _as_plugin : bool = false
 var _source_map : Dictionary
@@ -347,8 +347,8 @@ func _translate_log() -> void:
 		log_translated.text = ""
 		return
 
-	var translated : String = LogTranslator.translate(log_input.text, _source_map)
-	var named : String = LogTranslator.find_source_map_name(log_input.text)
+	var translated : String = _LogTranslator.translate(log_input.text, _source_map)
+	var named : String = _LogTranslator.find_source_map_name(log_input.text)
 	if !named.is_empty() and named != _source_map.get("filename", ""):
 		translated = "[This log names the source map '" + named + "', which is not the one that is open]\n" + translated
 	log_translated.text = translated
@@ -360,7 +360,7 @@ func _on_log_input_text_changed() -> void:
 
 # Opens the script which the line of the caret names, on the line it names
 func _on_log_translated_caret_changed() -> void:
-	var found : RegExMatch = RegEx.create_from_string(LogTranslator.SCRIPT_LINE).search(log_translated.get_line(log_translated.get_caret_line()))
+	var found : RegExMatch = RegEx.create_from_string(_LogTranslator.SCRIPT_LINE).search(log_translated.get_line(log_translated.get_caret_line()))
 	if !found or !_source_map.get("scripts", {}).has(found.get_string(1)):
 		return
 

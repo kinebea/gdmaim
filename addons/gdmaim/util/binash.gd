@@ -12,7 +12,7 @@ var _buffer : Dictionary = {}
 # A script gets replaced, so that properties are kept under their new names instead of being checked
 # against the script. A scene gets replaced, so that it and all it depends on is not loaded for nothing.
 # Anything else is left to its own loader, as a property may only take a resource of the right type.
-class Formo extends ResourceFormatLoader:
+class _Formo extends ResourceFormatLoader:
 	var _buffer : Dictionary = {}
 
 	const SCBOYS : PackedStringArray = [
@@ -60,7 +60,7 @@ class Formo extends ResourceFormatLoader:
 	func reset() -> void:
 		_pathor = ""
 
-var formo : Formo = Formo.new()
+var formo : _Formo = _Formo.new()
 
 func _init(id : String) -> void:
 	if id.is_empty():

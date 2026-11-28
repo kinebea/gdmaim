@@ -3,9 +3,9 @@ extends RefCounted
 
 const _Logger := preload("../../../logger.gd")
 const _Settings := preload("../../../settings.gd")
-const Token := preload("token.gd")
-const Stream := preload("stream.gd")
-const PreprocessorHints = preload("../preprocessor_hints.gd")
+const _Token := preload("token.gd")
+const _Stream := preload("stream.gd")
+const _PreprocessorHints = preload("../preprocessor_hints.gd")
 
 const KEYWORDS : Array[String] = ["extends", "class_name", "setget", "const", "signal", "enum", "static", "var", "func", "class", "pass", "if", "else", "elif", "while", "for", "in", "match", "continue", "break", "return", "assert", "yield", "await", "preload", "load", "as", "and", "or", "not", "when"]
 const LITERALS : Array[String] = ["true", "false", "null", "self", "PI", "TAU", "NAN", "INF"]
@@ -19,11 +19,11 @@ static var _pregex : RegEx = null
 
 var line_count : int
 
-var _stream : Stream
-var _tokens : Array[Token]
+var _stream : _Stream
+var _tokens : Array[_Token]
 var _idx : int
 var _line : int
-var _output : Array[Line]
+var _output : Array[_Line]
 var _can_be_nodepath : bool = true
 var _space_indent : int = 4
 var _source_line : int # Line of the source code the token being read begins on
@@ -40,13 +40,13 @@ func read(source_code : String) -> void:
 	_tokens.clear()
 	_idx = -1
 	_line = 0
-	_output = [Line.new()]
+	_output = [_Line.new()]
 	
 	_read_preprocessor(source_code)
 	_space_indent = _detect_space_indent(source_code)
 
 	_source_lines = source_code.split("\n")
-	_stream = Stream.new(source_code)
+	_stream = _Stream.new(source_code)
 	while _read_next_token(): pass
 
 	line_count = _stream.get_line_pos()
@@ -59,9 +59,9 @@ func _read_preprocessor(src : String) -> void:
 	for mtch : RegExMatch in _pregex.search_all(src):
 		_stream_preprocessor[mtch.get_string(0).trim_prefix(_Settings.current.preprocessor_prefix)] = mtch.get_string(1).strip_edges()
 
-	if !has_preprocessor(PreprocessorHints.STRIP_IGNORE_STATIC_TYPED_HINT):
-		_strip_static_typing = has_preprocessor(PreprocessorHints.STRIP_STATIC_TYPED_HINT) or has_preprocessor(PreprocessorHints.STRIP_STATIC_TYPED_INITIALIZED_HINT) or _Settings.current.strip_static_typing
-		_strip_static_typing_initialized = has_preprocessor(PreprocessorHints.STRIP_STATIC_TYPED_INITIALIZED_HINT) or _strip_static_typing_initialized or _Settings.current.striped_static_typing_be_initialized
+	if !has_preprocessor(_PreprocessorHints.STRIP_IGNORE_STATIC_TYPED_HINT):
+		_strip_static_typing = has_preprocessor(_PreprocessorHints.STRIP_STATIC_TYPED_HINT) or has_preprocessor(_PreprocessorHints.STRIP_STATIC_TYPED_INITIALIZED_HINT) or _Settings.current.strip_static_typing
+		_strip_static_typing_initialized = has_preprocessor(_PreprocessorHints.STRIP_STATIC_TYPED_INITIALIZED_HINT) or _strip_static_typing_initialized or _Settings.current.striped_static_typing_be_initialized
 
 func has_preprocessor(preprocessor : String) -> bool:
 	return _stream_preprocessor.has(preprocessor)
@@ -97,13 +97,13 @@ func is_eof(offset : int = 0) -> bool:
 	return _idx + offset >= _tokens.size() - 1
 
 
-func get_next() -> Token:
+func get_next() -> _Token:
 	_idx += 1
 	return _tokens[_idx] if _idx < _tokens.size() else null
 
 
-func get_next_filtered(type_filter : int = Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.INDENTATION | Token.Type.LINE_BREAK) -> Token:
-	var token : Token = peek_next_filtered(type_filter)
+func get_next_filtered(type_filter : int = _Token._Type.WHITESPACE | _Token._Type.COMMENT | _Token._Type.INDENTATION | _Token._Type.LINE_BREAK) -> _Token:
+	var token : _Token = peek_next_filtered(type_filter)
 	if token:
 		seek_token(token)
 	else:
@@ -112,38 +112,38 @@ func get_next_filtered(type_filter : int = Token.Type.WHITESPACE | Token.Type.CO
 	return token
 
 
-func peek_next_filtered(type_filter : int = Token.Type.WHITESPACE | Token.Type.COMMENT | Token.Type.INDENTATION | Token.Type.LINE_BREAK) -> Token:
+func peek_next_filtered(type_filter : int = _Token._Type.WHITESPACE | _Token._Type.COMMENT | _Token._Type.INDENTATION | _Token._Type.LINE_BREAK) -> _Token:
 	for i in range(_idx + 1, _tokens.size()):
-		var token : Token = _tokens[i]
+		var token : _Token = _tokens[i]
 		if !(token.type & type_filter):
 			return token
 	
 	return null
 
 
-func peek(offset : int = 1) -> Token:
+func peek(offset : int = 1) -> _Token:
 	return _tokens[_idx + offset] if _idx + offset < _tokens.size() and _idx + offset >= 0 else null
 
 
-func seek_token(token : Token) -> Token:
+func seek_token(token : _Token) -> _Token:
 	_idx = token.idx
 	return token
 
 
-func skip_to(token_str : String) -> Token:
+func skip_to(token_str : String) -> _Token:
 	while !is_eof():
-		var token : Token = get_next()
+		var token : _Token = get_next()
 		if token.get_value() == token_str:
 			return token
 	
 	return null
 
 
-func get_tokens() -> Array[Token]:
+func get_tokens() -> Array[_Token]:
 	return _tokens
 
 
-func insert_output_token(line_idx : int, token_idx : int, token : Token) -> void:
+func insert_output_token(line_idx : int, token_idx : int, token : _Token) -> void:
 	_output[line_idx].insert_token(token_idx, token)
 
 
@@ -151,7 +151,7 @@ func remove_output_token(line_idx : int, token_idx : int) -> void:
 	_output[line_idx].remove_token(token_idx)
 
 
-func insert_output_line(line_idx : int, line : Line) -> void:
+func insert_output_line(line_idx : int, line : _Line) -> void:
 	_output.insert(line_idx, line)
 
 
@@ -159,11 +159,11 @@ func remove_output_line(line_idx : int) -> void:
 	_output.remove_at(line_idx)
 
 
-func get_output_line(idx : int) -> Line:
+func get_output_line(idx : int) -> _Line:
 	return _output[idx] if idx >= 0 and idx < _output.size() else null
 
 
-func find_output_line(line : Line) -> int:
+func find_output_line(line : _Line) -> int:
 	return _output.find(line)
 
 
@@ -171,7 +171,7 @@ func get_output_line_count() -> int:
 	return _output.size()
 
 
-func get_output_lines() -> Array[Line]:
+func get_output_lines() -> Array[_Line]:
 	return _output
 
 
@@ -195,7 +195,7 @@ func _read_next_token() -> bool:
 			_stream.get_next()
 			_add_line_break()
 			line_count += 1
-			_output.append(Line.new())
+			_output.append(_Line.new())
 			_can_be_nodepath = true
 		return true
 	
@@ -370,7 +370,7 @@ func _read_comment() -> void:
 				var hint_name : String = slices[0].strip_edges()
 				var args : String = slices[1].strip_edges() if slices.size() == 2 else ""
 				if hint_name == "OBFUSCATE_STRING_SEED":
-					hint_name = PreprocessorHints.OBFUSCATE_STRINGS_SEED # As it used to be spelled in the documentation
+					hint_name = _PreprocessorHints.OBFUSCATE_STRINGS_SEED # As it used to be spelled in the documentation
 				_output.back().add_hint(hint_name, args)
 				if !_source_hints.has(_source_line):
 					_source_hints[_source_line] = {}
@@ -412,13 +412,13 @@ func _read_multi_string() -> void:
 	var comment : bool = true
 
 	# Only a string that starts its own line can be a comment
-	for tkn : Token in _output.back().tokens:
+	for tkn : _Token in _output.back().tokens:
 		if !tkn.is_indentation() and !tkn.is_whitespace():
 			comment = false
 			break
 
 	for x : int in range(_tokens.size() - 1, -1, -1):
-		var tkn : Token = _tokens[x]
+		var tkn : _Token = _tokens[x]
 		if tkn.is_indentation() or tkn.is_line_break():
 			continue
 		elif tkn.is_operator() or tkn.is_keyword():
@@ -469,10 +469,10 @@ func _read_multi_string() -> void:
 	
 	# Append empty padding lines to maintain 1:1 line counting. They hold nothing, as
 	# indentation in them would end up in front of whatever follows the string.
-	var string_line : Line = _output.back()
+	var string_line : _Line = _output.back()
 	for i in str.count("\n"):
 		line_count += 1
-		_output.append(Line.new())
+		_output.append(_Line.new())
 	# What follows the string on its last line goes on with the statement of the line it begins on
 	if !has_newline and str.count("\n") > 0:
 		_output.back().continued_from = string_line
@@ -480,7 +480,7 @@ func _read_multi_string() -> void:
 	# Ensure we force a newline after a bare multiline string
 	if has_newline:
 		line_count += 1
-		_output.append(Line.new())
+		_output.append(_Line.new())
 	
 	_can_be_nodepath = has_newline
 
@@ -655,13 +655,13 @@ func _is_literal(token : String) -> bool:
 	return LITERALS.has(token)
 
 
-func _add_token(type : Token.Type, value : String, readable : bool = true, deco : String = "") -> void:
-	var token : Token = null
+func _add_token(type : _Token._Type, value : String, readable : bool = true, deco : String = "") -> void:
+	var token : _Token = null
 	
 	if !readable and value.begins_with(_Settings.current.preprocessor_prefix):
 		readable = true
 		
-	token = Token.new(type, value, _tokens.size(), _output.size()-1, deco)
+	token = _Token.new(type, value, _tokens.size(), _output.size()-1, deco)
 	token.source_line = _source_line
 
 	_output.back().add_token(token)
@@ -672,70 +672,70 @@ func _add_token(type : Token.Type, value : String, readable : bool = true, deco 
 	
 
 func _add_symbol(name : String) -> void:
-	_add_token(Token.Type.SYMBOL, name)
+	_add_token(_Token._Type.SYMBOL, name)
 
 
 func _add_keyword(keyword : String) -> void:
-	_add_token(Token.Type.KEYWORD, keyword)
+	_add_token(_Token._Type.KEYWORD, keyword)
 
 
 func _add_literal(literal : String) -> void:
-	_add_token(Token.Type.LITERAL, literal)
+	_add_token(_Token._Type.LITERAL, literal)
 
 
 func _add_number_literal(number : String) -> void:
-	_add_token(Token.Type.NUMBER_LITERAL, number)
+	_add_token(_Token._Type.NUMBER_LITERAL, number)
 
 
 func _add_string_literal(str : String, deco : String) -> void:
-	_add_token(Token.Type.STRING_LITERAL, str, true, deco)
+	_add_token(_Token._Type.STRING_LITERAL, str, true, deco)
 
 func _add_string_multi_line(str : String, deco : String) -> void:
-	_add_token(Token.Type.STRING_MULTI_LINE, str, true, deco)
+	_add_token(_Token._Type.STRING_MULTI_LINE, str, true, deco)
 
 func _add_node_path(str : String) -> void:
-	_add_token(Token.Type.NODE_PATH, str)
+	_add_token(_Token._Type.NODE_PATH, str)
 
 
 func _add_annotation(str : String) -> void:
-	_add_token(Token.Type.ANNOTATION, str)
+	_add_token(_Token._Type.ANNOTATION, str)
 
 
 func _add_punctuator(punctuator : String) -> void:
-	_add_token(Token.Type.PUNCTUATOR, punctuator)
+	_add_token(_Token._Type.PUNCTUATOR, punctuator)
 
 
 func _add_operator(operator : String) -> void:
-	_add_token(Token.Type.OPERATOR, operator)
+	_add_token(_Token._Type.OPERATOR, operator)
 
 
 func _add_comment(text : String) -> void:
-	_add_token(Token.Type.COMMENT, text, false)
+	_add_token(_Token._Type.COMMENT, text, false)
 
 
 func _add_whitespace(str : String) -> void:
-	_add_token(Token.Type.WHITESPACE, str, false)
+	_add_token(_Token._Type.WHITESPACE, str, false)
 
 
 func _add_indentation(indentation : int) -> void:
-	_add_token(Token.Type.INDENTATION, "\t".repeat(indentation))
+	_add_token(_Token._Type.INDENTATION, "\t".repeat(indentation))
 
 
 func _add_line_break() -> void:
-	_add_token(Token.Type.LINE_BREAK, "\n")
+	_add_token(_Token._Type.LINE_BREAK, "\n")
 
 
 func _add_statement_break() -> void:
-	_add_token(Token.Type.STATEMENT_BREAK, "\\")
+	_add_token(_Token._Type.STATEMENT_BREAK, "\\")
 
 
-class Line:
-	var tokens : Array[Token]
+class _Line:
+	var tokens : Array[_Token]
 	var hints : Dictionary
-	var continued_from : Line # The line a multi-line string begins on, when what follows the string is on this one
+	var continued_from : _Line # The line a multi-line string begins on, when what follows the string is on this one
 	var indentation : int
 	
-	func _init(tokens : Array[Token] = []) -> void:
+	func _init(tokens : Array[_Token] = []) -> void:
 		self.tokens = tokens
 	
 	func _to_string() -> String:
@@ -744,21 +744,21 @@ class Line:
 			str += str(token)
 		return str
 	
-	func add_token(token : Token) -> void:
+	func add_token(token : _Token) -> void:
 		tokens.append(token)
 	
-	func insert_token(idx : int, token : Token) -> void:
+	func insert_token(idx : int, token : _Token) -> void:
 		tokens.insert(idx, token)
 	
 	func remove_token(idx : int) -> void:
 		tokens.remove_at(idx)
 	
-	func erase_token(token : Token) -> void:
+	func erase_token(token : _Token) -> void:
 		tokens.erase(token)
 	
 	func clear_tokens(keep_indentation : bool = true) -> void:
 		for i in range(tokens.size() - 1, -1, -1):
-			var token : Token = tokens[i]
+			var token : _Token = tokens[i]
 			if !token.is_line_break() and (!keep_indentation or !token.is_indentation()):
 				tokens.remove_at(i)
 	
@@ -778,7 +778,7 @@ class Line:
 		return _get_own_indentation()
 
 	func _get_own_indentation() -> int:
-		return 0 if !tokens or tokens[0].type != Token.Type.INDENTATION else tokens[0].get_value().length()
+		return 0 if !tokens or tokens[0].type != _Token._Type.INDENTATION else tokens[0].get_value().length()
 
 	# Whether a statement begins on the line, which one that goes on with another does not
 	func has_statement() -> bool:

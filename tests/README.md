@@ -40,6 +40,10 @@ the project, which every run shares.
 `project/cases` and prints a line for each. A case is a script with a method `run_case()` that returns
 `"ok"`, or a few words on what is wrong.
 
+The copy of the project also gets a folder `clashing_names` with a class for every inner class, enum
+and preloaded script of the addon, named as it is without the `_` it begins with. A game may have a
+class with any of those names, and the addon must still compile.
+
 `run.sh` exports that project once for every file in `tests/configs` and runs each exported pack.
 Around every export it also checks that no script of the addon reported an error and that the files
 of Godot which GDMaim edits during an export are back to what they were, and of every game that it

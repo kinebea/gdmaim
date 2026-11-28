@@ -1,7 +1,7 @@
 extends RefCounted
 
 
-const GodotFiles := preload("godot_files.gd")
+const _GodotFiles := preload("godot_files.gd")
 const _ExportPlugin := preload("export_plugin.gd")
 
 const BACKUP_PATH : String = "res://addons/gdmaim/backup/godot_files.backup"
@@ -61,7 +61,7 @@ func restore() -> void:
 
 
 func edit(path : String, source : PackedByteArray, export : PackedByteArray) -> void:
-	_files[path] = ExportFile.new(source, export)
+	_files[path] = _ExportFile.new(source, export)
 
 
 static func _restore_backup() -> void:
@@ -70,13 +70,13 @@ static func _restore_backup() -> void:
 	backups = backup_file.get_var(false)
 	backup_file.close()
 	
-	var godot_files := GodotFiles.new()
+	var godot_files := _GodotFiles.new()
 	for path in backups:
-		godot_files._files[path] = ExportFile.new(backups[path], PackedByteArray())
+		godot_files._files[path] = _ExportFile.new(backups[path], PackedByteArray())
 	godot_files.restore()
 
 
-class ExportFile:
+class _ExportFile:
 	var source : PackedByteArray
 	var export : PackedByteArray
 	

@@ -2,7 +2,7 @@
 extends EditorPlugin
 
 
-const GodotFiles := preload("godot_files.gd")
+const _GodotFiles := preload("godot_files.gd")
 const _Settings := preload("settings.gd")
 
 var settings : _Settings
@@ -19,7 +19,7 @@ func get_settings() -> _Settings:
 func _enter_tree() -> void:
 	name = "GDMaim"
 	
-	GodotFiles.check_backups()
+	_GodotFiles.check_backups()
 	
 	settings = _Settings.new(true)
 	

@@ -11,7 +11,7 @@ extends SceneTree
 
 const USAGE : String = "Usage: godot --headless --path <project> -s res://addons/gdmaim/util/translate_log.gd -- <log> [--map=<source map>] [--out=<file>]"
 
-const LogTranslator := preload("log_translator.gd")
+const _LogTranslator := preload("log_translator.gd")
 const _Settings := preload("../settings.gd")
 
 
@@ -44,17 +44,17 @@ func _run(args : PackedStringArray) -> int:
 	var text : String = FileAccess.get_file_as_string(log_path)
 
 	if map_path.is_empty():
-		var map_name : String = LogTranslator.find_source_map_name(text)
+		var map_name : String = _LogTranslator.find_source_map_name(text)
 		if map_name.is_empty():
 			return _fail("The log does not name its source map, which takes the setting 'Inject Name'. Name the source map of that export with --map=<source map>")
 		map_path = _Settings.new(false).source_map_path.path_join(map_name)
 		if !FileAccess.file_exists(map_path):
 			return _fail("The source map of the log is not at '" + map_path + "'. Name where it is with --map=<source map>")
-	var source_map : Dictionary = LogTranslator.load_source_map(map_path)
+	var source_map : Dictionary = _LogTranslator.load_source_map(map_path)
 	if source_map.is_empty():
 		return _fail("'" + map_path + "' is not a source map")
 
-	var translated : String = LogTranslator.translate(text, source_map)
+	var translated : String = _LogTranslator.translate(text, source_map)
 	if out_path.is_empty():
 		print(translated)
 		return 0

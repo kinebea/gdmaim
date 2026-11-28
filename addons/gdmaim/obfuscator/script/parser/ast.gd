@@ -1,18 +1,18 @@
 extends RefCounted
 
 
-const SymbolTable := preload("../../symbol_table.gd")
-const Token := preload("../tokenizer/token.gd")
+const _SymbolTable := preload("../../symbol_table.gd")
+const _Token := preload("../tokenizer/token.gd")
 
 
-class ASTNode:
+class _ASTNode:
 	var parent : WeakRef
-	var token : Token
-	var children : Array[ASTNode]
-	func _init(p : ASTNode) -> void: parent = weakref(p)
+	var token : _Token
+	var children : Array[_ASTNode]
+	func _init(p : _ASTNode) -> void: parent = weakref(p)
 	func _to_string() -> String: return "pass" if parent else "root"
-	func get_parent() -> ASTNode: return parent.get_ref() as ASTNode if parent else null
-	func get_children() -> Array[ASTNode]: return children
+	func get_parent() -> _ASTNode: return parent.get_ref() as _ASTNode if parent else null
+	func get_children() -> Array[_ASTNode]: return children
 	func print_tree(indentation : int = 0, indentation_str : String = ">   ") -> String:
 		var str : String = "\n" + (indentation_str.repeat(indentation) if indentation > 0 else "") + str(self)
 		for child in get_children():
@@ -20,153 +20,153 @@ class ASTNode:
 		return str
 
 
-class Sequence extends ASTNode:
-	var token_from : Token
-	var token_to : Token
-	var statements : Array[ASTNode]
+class _Sequence extends _ASTNode:
+	var token_from : _Token
+	var token_to : _Token
+	var statements : Array[_ASTNode]
 	func _to_string() -> String: return "sequence"
-	func get_children() -> Array[ASTNode]: return statements
+	func get_children() -> Array[_ASTNode]: return statements
 
 
-class If extends ASTNode:
-	var condition : Expr
-	var body : Sequence
+class _If extends _ASTNode:
+	var condition : _Expr
+	var body : _Sequence
 	#var body_true : Sequence
 	#var body_false : Sequence
 	func _to_string() -> String: return "if"
 	#func get_children() -> Array[ASTNode]: return [condition, body_true] if !body_false else [condition, body_true, body_false]
-	func get_children() -> Array[ASTNode]: return body.statements
+	func get_children() -> Array[_ASTNode]: return body.statements
 
 
-class Elif extends ASTNode:
-	var condition : Expr
-	var body : Sequence
+class _Elif extends _ASTNode:
+	var condition : _Expr
+	var body : _Sequence
 	#var body_true : Sequence
 	#var body_false : Sequence
 	func _to_string() -> String: return "elif"
-	func get_children() -> Array[ASTNode]: return body.statements
+	func get_children() -> Array[_ASTNode]: return body.statements
 
 
-class Else extends ASTNode:
-	var body : Sequence
+class _Else extends _ASTNode:
+	var body : _Sequence
 	#var body_true : Sequence
 	#var body_false : Sequence
 	func _to_string() -> String: return "else"
-	func get_children() -> Array[ASTNode]: return body.statements
+	func get_children() -> Array[_ASTNode]: return body.statements
 
 
-class Match extends ASTNode:
-	var body : Sequence
+class _Match extends _ASTNode:
+	var body : _Sequence
 	func _to_string() -> String: return "match"
-	func get_children() -> Array[ASTNode]: return body.statements
+	func get_children() -> Array[_ASTNode]: return body.statements
 
 
-class For extends ASTNode:
-	var iterator : Var
-	var expr : Expr
-	var body : Sequence
+class _For extends _ASTNode:
+	var iterator : _Var
+	var expr : _Expr
+	var body : _Sequence
 	func _to_string() -> String: return "for"
-	func get_children() -> Array[ASTNode]: return ([iterator] as Array[ASTNode]) + body.statements
+	func get_children() -> Array[_ASTNode]: return ([iterator] as Array[_ASTNode]) + body.statements
 
 
-class Iterator extends Var:
+class _Iterator extends _Var:
 	func _to_string() -> String: return "iterator " + str(symbol)
 
 
-class While extends ASTNode:
-	var condition : Expr
-	var body : Sequence
+class _While extends _ASTNode:
+	var condition : _Expr
+	var body : _Sequence
 	func _to_string() -> String: return "while"
-	func get_children() -> Array[ASTNode]: return body.statements
+	func get_children() -> Array[_ASTNode]: return body.statements
 
 
-class SymbolDeclaration extends ASTNode:
-	var symbol : SymbolTable.Symbol
+class _SymbolDeclaration extends _ASTNode:
+	var symbol : _SymbolTable._Symbol
 	func _to_string() -> String: return "declare symbol " + str(symbol)
 
 
-class Class extends SymbolDeclaration:
-	var ext : SymbolTable.SymbolPath
-	var body : Sequence
+class _Class extends _SymbolDeclaration:
+	var ext : _SymbolTable._SymbolPath
+	var body : _Sequence
 	func _to_string() -> String: return "class " + str(symbol) + " extends " + str(ext)
-	func get_children() -> Array[ASTNode]: return body.statements
+	func get_children() -> Array[_ASTNode]: return body.statements
 
 
-class Func extends SymbolDeclaration:
-	var params : Array[Parameter]
-	var body : Sequence
+class _Func extends _SymbolDeclaration:
+	var params : Array[_Parameter]
+	var body : _Sequence
 	func _to_string() -> String: return "func " + str(symbol)
 	func get_children() -> Array: return params + body.statements
 
 
-class SignalDef extends SymbolDeclaration:
-	var params : Array[Parameter]
+class _SignalDef extends _SymbolDeclaration:
+	var params : Array[_Parameter]
 	func _to_string() -> String: return "signal " + str(symbol)
 	func get_children() -> Array: return params
 
 
-class EnumDef extends SymbolDeclaration:
-	var keys : Array[KeyDef]
+class _EnumDef extends _SymbolDeclaration:
+	var keys : Array[_KeyDef]
 	func _to_string() -> String: return "enum " + str(symbol)
 	func get_children() -> Array: return keys
 
-	class KeyDef extends SymbolDeclaration:
-		var expr : Expr
+	class _KeyDef extends _SymbolDeclaration:
+		var expr : _Expr
 		func _to_string() -> String: return "key " + str(symbol)
 		#func get_children() -> Array[ASTNode]: return [expr]
 
 
-class Var extends SymbolDeclaration:
-	var default : Sequence
-	var getset : Sequence
+class _Var extends _SymbolDeclaration:
+	var default : _Sequence
+	var getset : _Sequence
 	func _to_string() -> String: return "var " + str(symbol)
-	func get_children() -> Array[ASTNode]: return (default.statements if default else ([] as Array[ASTNode])) + (getset.statements if getset else ([] as Array[ASTNode]))
+	func get_children() -> Array[_ASTNode]: return (default.statements if default else ([] as Array[_ASTNode])) + (getset.statements if getset else ([] as Array[_ASTNode]))
 
 
-class Const extends Var:
+class _Const extends _Var:
 	func _to_string() -> String: return "const " + str(symbol)
 
 
-class ExportVar extends Var:
+class _ExportVar extends _Var:
 	func _to_string() -> String: return "@export var " + str(symbol)
 
 
-class ExportNodePathVar extends ExportVar:
-	var types : Array[StringSymbol]
+class _ExportNodePathVar extends _ExportVar:
+	var types : Array[_StringSymbol]
 	func _to_string() -> String: return "@export_node_path var " + str(symbol)
 	func get_children() -> Array: return types + super()
 
 
-class Parameter extends Var:
+class _Parameter extends _Var:
 	func _to_string() -> String: return "param " + str(symbol)
 
 
-class Symbol extends ASTNode:
-	var path : SymbolTable.SymbolPath
+class _Symbol extends _ASTNode:
+	var path : _SymbolTable._SymbolPath
 	func _to_string() -> String: return "symbol " + str(path)
 
 
-class StringSymbol extends ASTNode:
-	var path : SymbolTable.SymbolPath
+class _StringSymbol extends _ASTNode:
+	var path : _SymbolTable._SymbolPath
 	func _to_string() -> String: return 'symbol "' + str(path) + '"'
 
 
-class Call extends Symbol:
-	var args : Array[Expr]
+class _Call extends _Symbol:
+	var args : Array[_Expr]
 	func _to_string() -> String: return "call " + str(path)
 	func get_children() -> Array: return args
 
 
-class Expr extends ASTNode:
+class _Expr extends _ASTNode:
 	var expr : String
-	var symbol_paths : Array[SymbolTable.SymbolPath]
+	var symbol_paths : Array[_SymbolTable._SymbolPath]
 	func _to_string() -> String: return expr + " " + str(symbol_paths)
 	#func get_children() -> Array[ASTNode]: return components
 
 
-class Assignment extends ASTNode:
-	var target : SymbolTable.SymbolPath
+class _Assignment extends _ASTNode:
+	var target : _SymbolTable._SymbolPath
 	var op : String
-	var expr : Expr
+	var expr : _Expr
 	func _to_string() -> String: return "assign " + str(target) + " " + op
-	func get_children() -> Array[ASTNode]: return [expr]
+	func get_children() -> Array[_ASTNode]: return [expr]
